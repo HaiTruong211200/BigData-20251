@@ -2,140 +2,124 @@ import React, { useState } from 'react';
 import { Row, Col, Select, Button, Card } from 'antd';
 const { Option } = Select;
 
-const FilterBar: React.FC = () => {
-    const [filters, setFilters] = useState({
-        airlineCode: [],
-        airportCode: [],
-        monthName: [],
-        cancelReason: [],
-        airlineName: [],
-        airportName: [],
-    });
+// Định nghĩa kiểu cho state filters để code chặt chẽ hơn
+interface FiltersState {
+    airlineCode: string[];
+    airportCode: string[];
+    monthName: string[];
+    cancelReason: string[];
+    airlineName: string[];
+    airportName: string[];
+}
 
-    const handleChange = (key: string, value: any) => {
+const initialFilters: FiltersState = {
+    airlineCode: [],
+    airportCode: [],
+    monthName: [],
+    cancelReason: [],
+    airlineName: [],
+    airportName: [],
+};
+
+const FilterBar: React.FC = () => {
+    const [filters, setFilters] = useState<FiltersState>(initialFilters);
+
+    // Dùng keyof FiltersState để đảm bảo key là hợp lệ
+    const handleChange = (key: keyof FiltersState, value: string[]) => {
         setFilters((prev) => ({ ...prev, [key]: value }));
     };
 
     const handleClearAll = () => {
-        setFilters({
-            airlineCode: [],
-            airportCode: [],
-            monthName: [],
-            cancelReason: [],
-            airlineName: [],
-            airportName: [],
-        });
+        setFilters(initialFilters);
     };
 
-    return (
-        <Card
-            variant='borderless'
-            
+    // Helper để tạo Select, tránh lặp code
+    const renderSelect = (
+        placeholder: string,
+        filterKey: keyof FiltersState,
+        options: { value: string; label: string }[]
+    ) => (
+        <Select
+            mode="multiple"
+            allowClear
+            placeholder={placeholder}
+            value={filters[filterKey]}
+            onChange={(value) => handleChange(filterKey, value)}
+            style={{ width: '100%' }}
         >
-            {/* Hàng 1 */}
+            {options.map((opt) => (
+                <Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                </Option>
+            ))}
+        </Select>
+    );
+
+    return (
+        <Card variant='borderless'>
+            {/* HÀNG 1: Chứa tất cả các bộ lọc 
+              - xs={24}: 1 cột trên mobile
+              - sm={12}: 2 cột trên tablet nhỏ
+              - md={8}: 3 cột trên desktop (giống layout của bạn)
+            */}
             <Row gutter={[16, 16]}>
-                <Col span={8}>
-                    <Select
-                        className="filter-select"
-                        mode="multiple"
-                        allowClear
-                        placeholder="Airline Code"
-                        value={filters.airlineCode}
-                        onChange={(value) => handleChange('airlineCode', value)}
-                        style={{ width: '100%' }}
-                    >
-                        <Option value="AA">AA</Option>
-                        <Option value="DL">DL</Option>
-                        <Option value="UA">UA</Option>
-                    </Select>
+                <Col xs={24} sm={12} md={8}>
+                    {renderSelect('Airline Code', 'airlineCode', [
+                        { value: 'AA', label: 'AA' },
+                        { value: 'DL', label: 'DL' },
+                        { value: 'UA', label: 'UA' },
+                    ])}
                 </Col>
 
-                <Col span={8}>
-                    <Select
-                        mode="multiple"
-                        allowClear
-                        placeholder="Airport Code"
-                        value={filters.airportCode}
-                        onChange={(value) => handleChange('airportCode', value)}
-                        style={{ width: '100%' }}
-                    >
-                        <Option value="JFK">JFK</Option>
-                        <Option value="LAX">LAX</Option>
-                        <Option value="ATL">ATL</Option>
-                    </Select>
+                <Col xs={24} sm={12} md={8}>
+                    {renderSelect('Airport Code', 'airportCode', [
+                        { value: 'JFK', label: 'JFK' },
+                        { value: 'LAX', label: 'LAX' },
+                        { value: 'ATL', label: 'ATL' },
+                    ])}
                 </Col>
 
-                <Col span={8}>
-                    <Select
-                        className="filter-select"
-                        mode="multiple"
-                        allowClear
-                        placeholder="Month Name"
-                        value={filters.monthName}
-                        onChange={(value) => handleChange('monthName', value)}
-                        style={{ width: '100%' }}
-                    >
-                        <Option value="January">January</Option>
-                        <Option value="February">February</Option>
-                        <Option value="March">March</Option>
-                    </Select>
+                <Col xs={24} sm={12} md={8}>
+                    {renderSelect('Month Name', 'monthName', [
+                        { value: 'January', label: 'January' },
+                        { value: 'February', label: 'February' },
+                        { value: 'March', label: 'March' },
+                    ])}
+                </Col>
+
+                <Col xs={24} sm={12} md={8}>
+                    {renderSelect('Cancel Reason', 'cancelReason', [
+                        { value: 'A', label: 'A - Weather' },
+                        { value: 'B', label: 'B - Maintenance' },
+                        { value: 'C', label: 'C - Crew' },
+                        { value: 'D', label: 'D - Security' },
+                    ])}
+                </Col>
+
+                <Col xs={24} sm={12} md={8}>
+                    {renderSelect('Airline Name', 'airlineName', [
+                        { value: 'American Airlines', label: 'American Airlines' },
+                        { value: 'Delta', label: 'Delta' },
+                        { value: 'United', label: 'United' },
+                    ])}
+                </Col>
+
+                <Col xs={24} sm={12} md={8}>
+                    {renderSelect('Airport Name', 'airportName', [
+                        { value: 'John F. Kennedy Intl', label: 'John F. Kennedy Intl' },
+                        { value: 'Los Angeles Intl', label: 'Los Angeles Intl' },
+                        { value: 'Hartsfield-Jackson Atlanta Intl', label: 'Hartsfield-Jackson Atlanta Intl' },
+                    ])}
                 </Col>
             </Row>
 
-            {/* Hàng 2 */}
-            <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-                <Col span={8}>
-                    <Select
-                        className="filter-select"
-                        mode="multiple"
-                        allowClear
-                        placeholder="Cancel Reason"
-                        value={filters.cancelReason}
-                        onChange={(value) => handleChange('cancelReason', value)}
-                        style={{ width: '100%' }}
-                    >
-                        <Option value="A">A - Weather</Option>
-                        <Option value="B">B - Maintenance</Option>
-                        <Option value="C">C - Crew</Option>
-                        <Option value="D">D - Security</Option>
-                    </Select>
-                </Col>
-
-                <Col span={8}>
-                    <Select
-                        className="filter-select"
-                        mode="multiple"
-                        allowClear
-                        placeholder="Airline Name"
-                        value={filters.airlineName}
-                        onChange={(value) => handleChange('airlineName', value)}
-                        style={{ width: '100%' }}
-                    >
-                        <Option value="American Airlines">American Airlines</Option>
-                        <Option value="Delta">Delta</Option>
-                        <Option value="United">United</Option>
-                    </Select>
-                </Col>
-
-                <Col span={6}>
-                    <Select
-                        className="filter-select"
-                        mode="multiple"
-                        allowClear
-                        placeholder="Airport Name"
-                        value={filters.airportName}
-                        onChange={(value) => handleChange('airportName', value)}
-                        style={{ width: '100%' }}
-                    >
-                        <Option value="John F. Kennedy Intl">John F. Kennedy Intl</Option>
-                        <Option value="Los Angeles Intl">Los Angeles Intl</Option>
-                        <Option value="Hartsfield-Jackson Atlanta Intl">Hartsfield-Jackson Atlanta Intl</Option>
-                    </Select>
-                </Col>
-
-                {/* Clear All */}
-                <Col span={2} style={{ textAlign: 'right' }}>
-                    <Button  danger onClick={handleClearAll} style={{ width: '100%', height: '110%' }}>
+            {/* HÀNG 2: Chỉ chứa nút Clear All 
+              - Tách riêng để dễ căn chỉnh (textAlign: 'right')
+              - Xóa bỏ các style 'width' và 'height' không cần thiết trên Button
+            */}
+            <Row style={{ marginTop: 16 }}>
+                <Col span={24} style={{ textAlign: 'right' }}>
+                    <Button danger onClick={handleClearAll}>
                         Clear All
                     </Button>
                 </Col>
