@@ -1,10 +1,10 @@
+'use client'; // bắt buộc nếu dùng useState, useEffect trong Next 13 App Router
+
 import React, { useState } from 'react';
 import {
     LaptopOutlined,
     NotificationOutlined,
     UserOutlined,
-    MenuUnfoldOutlined,
-    MenuFoldOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import {
@@ -12,14 +12,11 @@ import {
     Layout,
     Menu,
     theme,
-    Button,
+    Switch,
     Row,
     Col,
-    Card,
-    Statistic,
     ConfigProvider,
     theme as antdTheme,
-    Switch,
 } from 'antd';
 import FilterBar from './components/FilterBar';
 import SummaryCards from './components/SummaryCards';
@@ -57,7 +54,7 @@ const items2: MenuProps['items'] = [UserOutlined, LaptopOutlined, NotificationOu
     }
 );
 
-const App: React.FC = () => {
+export default function HomePage() {
     const [collapsed, setCollapsed] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -75,7 +72,7 @@ const App: React.FC = () => {
                 algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
             }}
         >
-            <Layout style={{ height: '100vh' }}> {/* Fullscreen */}
+            <Layout style={{ height: '100vh' }}>
                 <Header
                     style={{
                         display: 'flex',
@@ -85,25 +82,9 @@ const App: React.FC = () => {
                         padding: '0 16px',
                     }}
                 >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {/* Nút toggle cho sider */}
-                        {/* <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={toggleCollapsed}
-              style={{
-                fontSize: '16px',
-                width: 40,
-                height: 40,
-                color: '#fff',
-                marginRight: 8,
-                marginLeft: 4,
-              }}
-            /> */}
-                        <div style={{ color: '#fff', fontWeight: 'bold' }}>Airline Flight Delays Analysis</div>
+                    <div style={{ color: '#fff', fontWeight: 'bold' }}>
+                        Airline Flight Delays Analysis
                     </div>
-
-                    {/* Menu ngang, Right tab */}
                     <Menu
                         theme="dark"
                         mode="horizontal"
@@ -126,31 +107,7 @@ const App: React.FC = () => {
                 </Header>
 
                 <Layout>
-                    {/* Sidebar */}
-                    {/* <Sider
-            collapsible
-            collapsed={collapsed}
-            trigger={null}
-            width={200}
-            style={{
-              background: colorBgContainer,
-              borderRight: '1px solid #f0f0f0',
-            }}
-          >
-            <Menu
-              mode="inline"
-              defaultSelectedKeys={['1']}
-              defaultOpenKeys={['sub1']}
-              style={{ height: '100%', borderRight: 0 }}
-              items={items2}
-            />
-          </Sider> */}
-
                     <Layout>
-                        {/* <Breadcrumb
-              items={[{ title: 'Home' }, { title: 'List' }, { title: 'App' }]}
-              style={{ margin: '16px 0' }}
-            /> */}
                         <Content
                             style={{
                                 padding: 24,
@@ -161,13 +118,9 @@ const App: React.FC = () => {
                             }}
                         >
                             <FilterBar />
-
-                            {/* Summary Cards */}
                             <div style={{ marginTop: 24 }}>
                                 <SummaryCards />
                             </div>
-
-                            {/* Two Charts side by side */}
                             <div style={{ marginTop: 24 }}>
                                 <Row gutter={[16, 16]}>
                                     <Col xs={24} lg={12}>
@@ -184,6 +137,4 @@ const App: React.FC = () => {
             </Layout>
         </ConfigProvider>
     );
-};
-
-export default App;
+}
