@@ -110,14 +110,45 @@ df_parsed = (
     )
 )
 
-# Demo: print to terminal
-query = (
+# 5. Create an Aggregation Query(For update and complete mode)
+origin_counts_df = df_parsed.groupBy("ORIGIN").count()
+
+
+# MODE 1: Append (Default for non-aggregate queries)
+query_append = (
     df_parsed
     .writeStream
     .format("console")
+    .outputMode("append") # Explicitly state "append" mode
     .option("truncate", False)
     .option("numRows", 10)
     .start()
 )
 
-query.awaitTermination()
+#MODE 2: Complete
+query_complete = (
+    origin_counts_df
+    .writeStream
+    .format("console")
+    .outputMode("complete") # State "complete" mode
+    .option("truncate", False)
+    .start()
+)
+
+#MODE 3: Update
+query_update = (
+    origin_counts_df
+    .writeStream
+    .format("console")
+    .outputMode("update") # State "update" mode
+    .option("truncate", False)
+    .start()
+)
+
+
+#Start the query
+# Uncomment ONE of the following lines to select which query to run.
+print("Waiting for data from Kafka...")
+query_append.awaitTermination()
+# query_complete.awaitTermination()
+# query_update.awaitTermination()
