@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession, Row
-from pyspark.sql.functions import from_json, col, concat_ws
+from pyspark.sql.functions import from_json, col, concat_ws, to_timestamp, trim, regexp_replace
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
 
 # spark-submit --master local[*] --packages com.hortonworks:shc-core:1.1.1-2.1-s_2.11,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1 --repositories http://repo.hortonworks.com/content/groups/public/ --files /etc/hbase/conf/hbase-site.xml streaming_test_shc.py
@@ -27,7 +27,10 @@ df_raw_kafka = (spark
                 .option("kafka.bootstrap.servers", "localhost:9092")
                 .option("subscribe", "streaming_layer_topic")
                 .option("includeHeaders", "true")
+                .option("kafka.isolation.level", "read_committed")
+                .option("startingOffsets", "earliest")
                 .load())
+
 df_str_kafka = df_raw_kafka.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
 
 # Schema for kafka event
@@ -103,12 +106,22 @@ df_parsed = (
         concat_ws(
             "_",
             col("YEAR").cast(StringType()),
+            col("MONTH").cast(StringType()),
+            col("DAY_OF_MONTH").cast(StringType()),
             col("FL_DATE").cast(StringType()),
             col("OP_CARRIER_FL_NUM").cast(StringType()),
             col("TAIL_NUM").cast(StringType()),
         )
     )
+    .withColumn(
+        "EVENT_TIME",
+        to_timestamp(trim(regexp_replace(col("FL_DATE"), "\s+", " ")), "M/dd/yyyy h:mm:ss a")
+    )
 )
+
+df_dedup = df_parsed \
+    .withWatermark("EVENT_TIME", "10 days") \
+    .dropDuplicates(["row_key"])
 
 # 5. Create an Aggregation Query(For update and complete mode)
 origin_counts_df = df_parsed.groupBy("ORIGIN").count()
@@ -116,7 +129,7 @@ origin_counts_df = df_parsed.groupBy("ORIGIN").count()
 
 # MODE 1: Append (Default for non-aggregate queries)
 query_append = (
-    df_parsed
+    df_dedup
     .writeStream
     .format("console")
     .outputMode("append") # Explicitly state "append" mode
