@@ -1,2 +1,7 @@
 .idea/*
 
+# Remove unnecessary models
+MLModels/Model/LR/
+MLModels/Model/NB/
+MLModels/Model/RF/
+MLModels/Model/XGB/
