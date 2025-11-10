@@ -17,7 +17,6 @@ spark = (
     .config("spark.executor.heartbeatInterval", "60s")
     .config("spark.sql.execution.arrow.pyspark.enabled", "true")
     .config("spark.sql.ansi.enabled", "false")
-
     .getOrCreate()
 )
 
@@ -125,7 +124,7 @@ df_dedup = df_parsed \
     .dropDuplicates(["row_key"])
 
 # 5. Create an Aggregation Query(For update and complete mode)
-origin_counts_df = df_dedup.groupBy("ORIGIN").count()
+origin_counts_df = df_parsed.groupBy("ORIGIN").count()
 
 
 # MODE 1: Append (Default for non-aggregate queries)

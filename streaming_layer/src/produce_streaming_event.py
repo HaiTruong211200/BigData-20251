@@ -111,6 +111,5 @@ if __name__ == "__main__":
             print(f"Max retry reached for chunk {chunk_idx + 1} {send_count} records")
             producer.abort_transaction()
 
-
     producer.flush()
     print(f"Process all records")
