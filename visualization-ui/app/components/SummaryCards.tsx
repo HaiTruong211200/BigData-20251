@@ -51,7 +51,7 @@ const SummaryCards: React.FC = () => {
           />
         </Card>
       </Col>
-      <Col xs={24} sm={12} md={8} lg={4}>
+      {/* <Col xs={24} sm={12} md={8} lg={4}>
         <Card variant='outlined'>
           <Statistic
             title="Delayed %"
@@ -72,7 +72,7 @@ const SummaryCards: React.FC = () => {
             valueStyle={{ color: '#fa8c16', fontSize: 22 }}
           />
         </Card>
-      </Col>
+      </Col> */}
     </Row>
   );
 };
