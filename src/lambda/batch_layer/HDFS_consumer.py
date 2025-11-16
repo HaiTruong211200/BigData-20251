@@ -7,7 +7,7 @@ from put_data_hdfs import  store_data_in_hdfs
 def consum_hdfs():
     # Kafka broker configuration
     bootstrap_servers = 'localhost:9092'
-    topic = 'smartphoneTopic'
+    topic = 'FlightDataTopic'
 
     # Create a Kafka consumer
     consumer = KafkaConsumer(topic,
