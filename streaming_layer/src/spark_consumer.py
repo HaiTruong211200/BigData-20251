@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession, Row
 from pyspark.sql.functions import from_json, col, concat_ws, to_timestamp, trim, regexp_replace
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
+from pyspark.ml.pipeline import PipelineModel
 
 # spark-submit --master local[*] --packages com.hortonworks:shc-core:1.1.1-2.1-s_2.11,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1 --repositories http://repo.hortonworks.com/content/groups/public/ --files /etc/hbase/conf/hbase-site.xml streaming_test_shc.py
 
@@ -19,6 +20,10 @@ spark = (
     .config("spark.sql.ansi.enabled", "false")
     .getOrCreate()
 )
+
+MODEL_PATH = "../MLModels/Model/DT" 
+model = PipelineModel.load(MODEL_PATH)
+
 
 # Consume kafka event
 df_raw_kafka = (spark
@@ -122,6 +127,8 @@ df_parsed = (
 df_dedup = df_parsed \
     .withWatermark("EVENT_TIME", "10 days") \
     .dropDuplicates(["row_key"])
+
+df_predictions = model.transform(df_dedup)
 
 # 5. Create an Aggregation Query(For update and complete mode)
 origin_counts_df = df_parsed.groupBy("ORIGIN").count()
