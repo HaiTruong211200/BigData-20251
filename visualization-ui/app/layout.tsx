@@ -1,36 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Roboto } from "next/font/google";
 
 // @ts-ignore: CSS module type declarations are not present in this project
 import "./styles/globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const roboto = Roboto({
+    display: 'swap',
+    subsets: ["latin"],
+    weight: ["300", "400", "500", "700"],
 });
 
 export const metadata: Metadata = {
-  title: 'Airline Flight Analysis',
-  description: 'Dashboard for Airline Flight Delays Analysis',
+    title: "Airline Flight Analysis",
+    description: "Dashboard for Airline Flight Delays Analysis",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
-  );
+    return (
+        <html lang="en" className={roboto.className}>
+            <body>
+                {children}
+            </body>
+        </html>
+    );
 }

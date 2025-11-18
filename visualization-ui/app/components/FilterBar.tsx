@@ -1,51 +1,51 @@
-import React, { useState } from 'react';
-import { Row, Col, Select, Button, Card } from 'antd';
+import React, { useState } from "react";
+import { Row, Col, Select, DatePicker } from "antd";
+const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-// Định nghĩa kiểu cho state filters để code chặt chẽ hơn
+// Định nghĩa kiểu cho state filters
 interface FiltersState {
-    airlineCode: string[];
-    airportCode: string[];
-    monthName: string[];
-    cancelReason: string[];
-    airlineName: string[];
-    airportName: string[];
+    dateRange: [string, string] | null;
+    airline: string[];
+    originAirport: string[];
+    destinationAirport: string[];
+    flightStatus: string[];
 }
 
+// State ban đầu
 const initialFilters: FiltersState = {
-    airlineCode: [],
-    airportCode: [],
-    monthName: [],
-    cancelReason: [],
-    airlineName: [],
-    airportName: [],
+    dateRange: null,
+    airline: [],
+    originAirport: [],
+    destinationAirport: [],
+    flightStatus: [],
 };
+
 
 const FilterBar: React.FC = () => {
     const [filters, setFilters] = useState<FiltersState>(initialFilters);
 
-    // Dùng keyof FiltersState để đảm bảo key là hợp lệ
-    const handleChange = (key: keyof FiltersState, value: string[]) => {
+    const handleChange = <K extends keyof FiltersState>(
+        key: K,
+        value: FiltersState[K]
+    ) => {
         setFilters((prev) => ({ ...prev, [key]: value }));
     };
 
-    const handleClearAll = () => {
-        setFilters(initialFilters);
-    };
-
-    // Helper để tạo Select, tránh lặp code
+    // Helper to render Select
     const renderSelect = (
         placeholder: string,
         filterKey: keyof FiltersState,
         options: { value: string; label: string }[]
     ) => (
         <Select
+            size="large"
             mode="multiple"
             allowClear
             placeholder={placeholder}
-            value={filters[filterKey]}
-            onChange={(value) => handleChange(filterKey, value)}
-            style={{ width: '100%' }}
+            value={filters[filterKey] as string[]}
+            onChange={(val) => handleChange(filterKey, val as any)}
+            style={{ width: "100%" }}
         >
             {options.map((opt) => (
                 <Option key={opt.value} value={opt.value}>
@@ -56,75 +56,60 @@ const FilterBar: React.FC = () => {
     );
 
     return (
-        <Card variant='borderless'>
-            {/* HÀNG 1: Chứa tất cả các bộ lọc 
-              - xs={24}: 1 cột trên mobile
-              - sm={12}: 2 cột trên tablet nhỏ
-              - md={8}: 3 cột trên desktop (giống layout của bạn)
-            */}
-            <Row gutter={[16, 16]}>
-                <Col xs={24} sm={12} md={8}>
-                    {renderSelect('Airline Code', 'airlineCode', [
-                        { value: 'AA', label: 'AA' },
-                        { value: 'DL', label: 'DL' },
-                        { value: 'UA', label: 'UA' },
-                    ])}
-                </Col>
+        <Row gutter={[16, 16]}>
+            {/* DATE RANGE PICKER */}
+            <Col xs={24} sm={12} md={8}>
+                <RangePicker
+                    size="large"
+                    style={{ width: "100%" }}
+                    format="DD/MM/YYYY"
+                    onChange={(dates, dateStrings) =>
+                        handleChange("dateRange", dateStrings as [string, string])
+                    }
+                    placeholder={["Start Date", "End Date"]}
+                />
+            </Col>
 
-                <Col xs={24} sm={12} md={8}>
-                    {renderSelect('Airport Code', 'airportCode', [
-                        { value: 'JFK', label: 'JFK' },
-                        { value: 'LAX', label: 'LAX' },
-                        { value: 'ATL', label: 'ATL' },
-                    ])}
-                </Col>
+            {/* AIRLINE */}
+            <Col xs={24} sm={12} md={8}>
+                {renderSelect("Airline (Hãng bay)", "airline", [
+                    { value: "AA", label: "American Airlines" },
+                    { value: "DL", label: "Delta Airlines" },
+                    { value: "UA", label: "United Airlines" },
+                    { value: "WN", label: "Southwest" },
+                ])}
+            </Col>
 
-                <Col xs={24} sm={12} md={8}>
-                    {renderSelect('Month Name', 'monthName', [
-                        { value: 'January', label: 'January' },
-                        { value: 'February', label: 'February' },
-                        { value: 'March', label: 'March' },
-                    ])}
-                </Col>
+            {/* ORIGIN AIRPORT */}
+            <Col xs={24} sm={12} md={8}>
+                {renderSelect("Origin Airport (Sân bay đi)", "originAirport", [
+                    { value: "JFK", label: "JFK - New York" },
+                    { value: "LAX", label: "LAX - Los Angeles" },
+                    { value: "ORD", label: "ORD - Chicago O'Hare" },
+                    { value: "DFW", label: "DFW - Dallas/Fort Worth" },
+                ])}
+            </Col>
 
-                <Col xs={24} sm={12} md={8}>
-                    {renderSelect('Cancel Reason', 'cancelReason', [
-                        { value: 'A', label: 'A - Weather' },
-                        { value: 'B', label: 'B - Maintenance' },
-                        { value: 'C', label: 'C - Crew' },
-                        { value: 'D', label: 'D - Security' },
-                    ])}
-                </Col>
+            {/* DESTINATION AIRPORT */}
+            <Col xs={24} sm={12} md={8}>
+                {renderSelect("Destination Airport (Sân bay đến)", "destinationAirport", [
+                    { value: "ATL", label: "ATL - Atlanta" },
+                    { value: "SEA", label: "SEA - Seattle" },
+                    { value: "MIA", label: "MIA - Miami" },
+                    { value: "SFO", label: "SFO - San Francisco" },
+                ])}
+            </Col>
 
-                <Col xs={24} sm={12} md={8}>
-                    {renderSelect('Airline Name', 'airlineName', [
-                        { value: 'American Airlines', label: 'American Airlines' },
-                        { value: 'Delta', label: 'Delta' },
-                        { value: 'United', label: 'United' },
-                    ])}
-                </Col>
-
-                <Col xs={24} sm={12} md={8}>
-                    {renderSelect('Airport Name', 'airportName', [
-                        { value: 'John F. Kennedy Intl', label: 'John F. Kennedy Intl' },
-                        { value: 'Los Angeles Intl', label: 'Los Angeles Intl' },
-                        { value: 'Hartsfield-Jackson Atlanta Intl', label: 'Hartsfield-Jackson Atlanta Intl' },
-                    ])}
-                </Col>
-            </Row>
-
-            {/* HÀNG 2: Chỉ chứa nút Clear All 
-              - Tách riêng để dễ căn chỉnh (textAlign: 'right')
-              - Xóa bỏ các style 'width' và 'height' không cần thiết trên Button
-            */}
-            <Row style={{ marginTop: 16 }}>
-                <Col span={24} style={{ textAlign: 'right' }}>
-                    <Button danger onClick={handleClearAll}>
-                        Clear All
-                    </Button>
-                </Col>
-            </Row>
-        </Card>
+            {/* FLIGHT STATUS */}
+            <Col xs={24} sm={12} md={8}>
+                {renderSelect("Flight Status (Trạng thái)", "flightStatus", [
+                    { value: "On-Time", label: "On-Time" },
+                    { value: "Delayed", label: "Delayed" },
+                    { value: "Cancelled", label: "Cancelled" },
+                    { value: "Diverted", label: "Diverted" },
+                ])}
+            </Col>
+        </Row>
     );
 };
 
