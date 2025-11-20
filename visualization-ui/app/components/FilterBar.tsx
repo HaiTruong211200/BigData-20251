@@ -100,7 +100,7 @@ const FilterBar: React.FC = () => {
                 ])}
             </Col>
 
-            {/* FLIGHT STATUS */}
+            {/* FLIGHT STATUS
             <Col xs={24} sm={12} md={8}>
                 {renderSelect("Flight Status (Trạng thái)", "flightStatus", [
                     { value: "On-Time", label: "On-Time" },
@@ -108,7 +108,7 @@ const FilterBar: React.FC = () => {
                     { value: "Cancelled", label: "Cancelled" },
                     { value: "Diverted", label: "Diverted" },
                 ])}
-            </Col>
+            </Col> */}
         </Row>
     );
 };

@@ -10,12 +10,12 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 
-// Dữ liệu mẫu theo hình demo
+// Dữ liệu mẫu
 const data = [
-    { name: 'A', weather: 250, carrier: 120, system: 180, security: 300 },
-    { name: 'B', weather: 180, carrier: 100, system: 160, security: 200 },
-    { name: 'C', weather: 120, carrier: 80, system: 140, security: 150 },
-    { name: 'D', weather: 200, carrier: 110, system: 170, security: 230 },
+    { time: '2025-01-01', weather: 250, carrier: 120, system: 180, security: 300 },
+    { time: '2025-01-02', weather: 180, carrier: 100, system: 160, security: 200 },
+    { time: '2025-01-03', weather: 120, carrier: 80, system: 140, security: 150 },
+    { time: '2025-01-04', weather: 200, carrier: 110, system: 170, security: 230 },
 ];
 
 const COLORS = {
@@ -30,7 +30,7 @@ const DelayReasonStackedChart: React.FC = () => {
         <Card title="Analysis of Delay Reasons" variant="outlined">
             <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
-                    <XAxis dataKey="name" tick={{ fontWeight: 'bold' }} />
+                    <XAxis dataKey="time" tick={{ fontWeight: 'bold' }} />
                     <YAxis tick={{ fill: '#888' }} />
                     <Tooltip />
                     <Legend />

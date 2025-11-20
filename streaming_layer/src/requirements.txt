@@ -1,9 +1,0 @@
-# python==3.12
-pyspark[sql,pandas_on_spark,ml]
-plotly
-matplotlib
-scikit-learn
-numpy
-pandas
-pyarrow
-confluent-kafka
