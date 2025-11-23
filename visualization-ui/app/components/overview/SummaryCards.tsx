@@ -1,7 +1,9 @@
-import React from "react";
-import { Row, Col, Card, Statistic, Typography } from "antd";
+"use client"
 
-const { Text, Title } = Typography;
+import React from "react";
+import { Row, Col, Card, Statistic } from "antd";
+import Title from "antd/es/typography/Title";
+import Text from "antd/es/typography/Text"
 
 const SummaryCards: React.FC = () => {
     // Mock data
@@ -33,7 +35,7 @@ const SummaryCards: React.FC = () => {
             {/* ROW 1 — MAIN KPIs */}
             <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
                 <Col xs={24} sm={12} md={6}>
-                    <Card variant="outlined" bodyStyle={cardBody}>
+                    <Card variant="outlined" styles={{ body: cardBody }}>
                         <Statistic
                             title={<span style={{ fontSize: 12 }}>Total Flights</span>}
                             value={totalFlights}
@@ -44,7 +46,7 @@ const SummaryCards: React.FC = () => {
                 </Col>
 
                 <Col xs={24} sm={12} md={6}>
-                    <Card variant="outlined" bodyStyle={cardBody}>
+                    <Card variant="outlined" styles={{ body: cardBody }}>
                         <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                             <Statistic
                                 title={<span style={{ fontSize: 12 }}>On-Time Flights</span>}
@@ -60,7 +62,7 @@ const SummaryCards: React.FC = () => {
                 </Col>
 
                 <Col xs={24} sm={12} md={6}>
-                    <Card variant="outlined" bodyStyle={cardBody}>
+                    <Card variant="outlined" styles={{ body: cardBody }}>
                         <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                             <Statistic
                                 title={<span style={{ fontSize: 12 }}>Delayed Flights</span>}
@@ -76,7 +78,7 @@ const SummaryCards: React.FC = () => {
                 </Col>
 
                 <Col xs={24} sm={12} md={6}>
-                    <Card variant="outlined" bodyStyle={cardBody}>
+                    <Card variant="outlined" styles={{ body: cardBody }}>
                         <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                             <Statistic
                                 title={<span style={{ fontSize: 12 }}>Cancelled Flights</span>}
@@ -100,7 +102,7 @@ const SummaryCards: React.FC = () => {
             {/* ROW 2 — DELAY METRICS */}
             <Row gutter={[20, 20]}>
                 <Col xs={24} sm={12} md={8}>
-                    <Card variant="outlined" bodyStyle={cardBody}>
+                    <Card variant="outlined" styles={{ body: cardBody }}>
                         <Statistic
                             title={<span style={{ fontSize: 12 }}>Total Delay Time</span>}
                             value={totalDelay}
@@ -112,7 +114,7 @@ const SummaryCards: React.FC = () => {
                 </Col>
 
                 <Col xs={24} sm={12} md={8}>
-                    <Card variant="outlined" bodyStyle={cardBody}>
+                    <Card variant="outlined" styles={{ body: cardBody }}>
                         <Statistic
                             title={<span style={{ fontSize: 12 }}>Avg Delay per Delayed Flight</span>}
                             value={totalDelay / delayedFlights}
@@ -124,7 +126,7 @@ const SummaryCards: React.FC = () => {
                 </Col>
 
                 <Col xs={24} sm={12} md={8}>
-                    <Card variant="outlined" bodyStyle={cardBody}>
+                    <Card variant="outlined" styles={{ body: cardBody }}>
                         <Statistic
                             title={<span style={{ fontSize: 12 }}>Avg Delay per Flight</span>}
                             value={totalDelay / totalFlights}

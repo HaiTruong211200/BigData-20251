@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from "react";
 import { Row, Col, Select, DatePicker } from "antd";
 const { RangePicker } = DatePicker;
