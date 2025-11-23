@@ -1,29 +1,66 @@
-import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+'use client';
 
-// @ts-ignore: CSS module type declarations are not present in this project
-import "./styles/globals.css";
+import { Layout, Menu, Switch, ConfigProvider, theme as antdTheme } from 'antd';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
 
-const roboto = Roboto({
-    display: 'swap',
-    subsets: ["latin"],
-    weight: ["300", "400", "500", "700"],
-});
+const { Header, Content } = Layout;
 
-export const metadata: Metadata = {
-    title: "Airline Flight Analysis",
-    description: "Dashboard for Airline Flight Delays Analysis",
-};
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+    const [isDarkMode, setIsDarkMode] = useState(false);
+    const pathname = usePathname();
+    const router = useRouter();
 
-export default function RootLayout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
+    const routeMap: any = {
+        '/': '1',
+        '/overview': '1',
+        '/airline': '2',
+        '/airport': '3',
+        '/live': '4',
+    };
+
+    const items = [
+        { key: '1', label: 'Overview', route: '/overview' },
+        { key: '2', label: 'Airline Analysis', route: '/airline' },
+        { key: '3', label: 'Airport Analysis', route: '/airport' },
+        { key: '4', label: 'Live Monitoring & Prediction', route: '/live' }
+    ];
+
     return (
-        <html lang="en" className={roboto.className}>
+        <html lang="en">
             <body>
-                {children}
+                <ConfigProvider theme={{ algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }}>
+                    <Layout style={{ height: "100vh" }}>
+                        <Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 50 }}>
+                            <div style={{ color: '#fff', fontWeight: 'bold' }}>
+                                Airline Flight Delays Analysis
+                            </div>
+
+                            <Menu
+                                theme="dark"
+                                mode="horizontal"
+                                selectedKeys={[routeMap[pathname] || '1']}
+                                onClick={(e) => {
+                                    const route = items.find(i => i.key === e.key)?.route;
+                                    router.push(route!);
+                                }}
+                                items={items}
+                                style={{ flex: 1, justifyContent: 'flex-end' }}
+                            />
+
+                            <Switch
+                                checkedChildren="🌙"
+                                unCheckedChildren="☀️"
+                                checked={isDarkMode}
+                                onChange={setIsDarkMode}
+                            />
+                        </Header>
+
+                        <Content style={{ padding: 24, overflow: 'auto' }}>
+                            {children}
+                        </Content>
+                    </Layout>
+                </ConfigProvider>
             </body>
         </html>
     );
