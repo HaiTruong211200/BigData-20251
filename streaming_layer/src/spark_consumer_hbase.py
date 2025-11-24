@@ -1,12 +1,15 @@
 from pyspark.sql import SparkSession, Row
+from pyspark.sql.classic.dataframe import DataFrame
 from pyspark.sql.functions import from_json, col, concat_ws, to_timestamp, trim, regexp_replace
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
 from pyspark.ml.pipeline import PipelineModel
+from happybase_hbase import HBaseClient, write_to_hbase
 
 import os
 
 os.environ["PYSPARK_PYTHON"] = r"C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe"
 os.environ["PYSPARK_DRIVER_PYTHON"] = r"C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe"
+
 
 # spark-submit --master local[*] --packages com.hortonworks:shc-core:1.1.1-2.1-s_2.11,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1 --repositories http://repo.hortonworks.com/content/groups/public/ --files /etc/hbase/conf/hbase-site.xml streaming_test_shc.py
 
@@ -26,8 +29,8 @@ spark = (
     .getOrCreate()
 )
 
-MODEL_PATH = "../../MLModels/Model/DT"
-model = PipelineModel.load(MODEL_PATH)
+# MODEL_PATH = "../../MLModels/Model/DT"
+# model = PipelineModel.load(MODEL_PATH)
 
 
 # Consume kafka event
@@ -115,11 +118,7 @@ df_parsed = (
         "row_key",
         concat_ws(
             "_",
-            col("YEAR").cast(StringType()),
-            col("MONTH").cast(StringType()),
-            col("DAY_OF_MONTH").cast(StringType()),
             col("FL_DATE").cast(StringType()),
-            col("OP_CARRIER_FL_NUM").cast(StringType()),
             col("TAIL_NUM").cast(StringType()),
         )
     )
@@ -133,47 +132,20 @@ df_dedup = df_parsed \
     .withWatermark("EVENT_TIME", "10 days") \
     .dropDuplicates(["row_key"])
 
-df_predictions = model.transform(df_dedup)
+# df_predictions = model.transform(df_dedup)
 
-# 5. Create an Aggregation Query(For update and complete mode)
-origin_counts_df = df_parsed.groupBy("ORIGIN").count()
-
-
-# MODE 1: Append (Default for non-aggregate queries)
 query_append = (
     df_dedup
     .writeStream
     .format("console")
-    .outputMode("append") # Explicitly state "append" mode
-    .option("truncate", False)
-    .option("numRows", 10)
-    .start()
-)
-
-#MODE 2: Complete
-query_complete = (
-    origin_counts_df
-    .writeStream
-    .format("console")
-    .outputMode("complete") # State "complete" mode
+    .outputMode("append")
+    .foreachBatch(write_to_hbase)
     .option("truncate", False)
     .start()
+    # .option("numRows", 10)
+    # .start()
 )
 
-#MODE 3: Update
-query_update = (
-    origin_counts_df
-    .writeStream
-    .format("console")
-    .outputMode("update") # State "update" mode
-    .option("truncate", False)
-    .start()
-)
-
-
-#Start the query
-# Uncomment ONE of the following lines to select which query to run.
 print("Waiting for data from Kafka...")
 query_append.awaitTermination()
-# query_complete.awaitTermination()
-# query_update.awaitTermination()
+
