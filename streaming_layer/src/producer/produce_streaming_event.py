@@ -32,7 +32,7 @@ if __name__ == "__main__":
     producer = create_producer()
 
     # Data path
-    data_path = "../data/dataset.csv" # Path to data
+    data_path = "../../data/dataset.csv"  # Path to data
     topic = "streaming_layer_topic"
 
     # Read data

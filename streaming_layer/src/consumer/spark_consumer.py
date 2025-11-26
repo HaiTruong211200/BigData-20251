@@ -2,8 +2,6 @@ from pyspark.sql import SparkSession, Row
 from pyspark.sql.functions import from_json, col, concat_ws, to_timestamp, trim, regexp_replace
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
 from pyspark.ml.pipeline import PipelineModel
-from happybase_hbase import HBaseClient, write_to_hbase
-import time
 
 import os
 
@@ -19,18 +17,18 @@ spark = (
     .master("local[*]")
     .config("spark.driver.bindAddress", "127.0.0.1")
     .config("spark.driver.host", "127.0.0.1")
-    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1")
+    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1")
     .config("spark.python.worker.reuse", "false")
     .config("spark.network.timeout", "300s")
     .config("spark.executor.heartbeatInterval", "60s")
     .config("spark.sql.execution.arrow.pyspark.enabled", "true")
     .config("spark.sql.ansi.enabled", "false")
-    .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
     .getOrCreate()
 )
 
-MODEL_PATH = "../../MLModels/Model/DT"
+MODEL_PATH = "../../../MLModels/Model/DT"
 model = PipelineModel.load(MODEL_PATH)
+
 
 # Consume kafka event
 df_raw_kafka = (spark
@@ -41,8 +39,7 @@ df_raw_kafka = (spark
                 .option("includeHeaders", "true")
                 .option("kafka.isolation.level", "read_committed")
                 .option("startingOffsets", "earliest")
-                .load()
-)
+                .load())
 
 df_str_kafka = df_raw_kafka.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
 
@@ -118,7 +115,11 @@ df_parsed = (
         "row_key",
         concat_ws(
             "_",
+            col("YEAR").cast(StringType()),
+            col("MONTH").cast(StringType()),
+            col("DAY_OF_MONTH").cast(StringType()),
             col("FL_DATE").cast(StringType()),
+            col("OP_CARRIER_FL_NUM").cast(StringType()),
             col("TAIL_NUM").cast(StringType()),
         )
     )
@@ -133,24 +134,46 @@ df_dedup = df_parsed \
     .dropDuplicates(["row_key"])
 
 df_predictions = model.transform(df_dedup)
-df_output = df_predictions.select(
-    "prediction",
-    "probability",
-    *[c for c in df_dedup.columns]   # add original data
-)
+
+# 5. Create an Aggregation Query(For update and complete mode)
+origin_counts_df = df_parsed.groupBy("ORIGIN").count()
 
 
+# MODE 1: Append (Default for non-aggregate queries)
 query_append = (
-    df_output
+    df_dedup
     .writeStream
     .format("console")
-    .outputMode("append")
-    .foreachBatch(write_to_hbase)
-    .option("checkpointLocation", f"checkpoint/checkpoint_{time.time()}")
+    .outputMode("append") # Explicitly state "append" mode
+    .option("truncate", False)
+    .option("numRows", 10)
+    .start()
+)
+
+#MODE 2: Complete
+query_complete = (
+    origin_counts_df
+    .writeStream
+    .format("console")
+    .outputMode("complete") # State "complete" mode
     .option("truncate", False)
     .start()
 )
 
+#MODE 3: Update
+query_update = (
+    origin_counts_df
+    .writeStream
+    .format("console")
+    .outputMode("update") # State "update" mode
+    .option("truncate", False)
+    .start()
+)
+
+
+#Start the query
+# Uncomment ONE of the following lines to select which query to run.
 print("Waiting for data from Kafka...")
 query_append.awaitTermination()
-
+# query_complete.awaitTermination()
+# query_update.awaitTermination()
