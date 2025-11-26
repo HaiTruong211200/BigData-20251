@@ -87,8 +87,9 @@ def write_to_hbase(batch_df: DataFrame, batch_id):
                     b"status:is_cancelled": str(int(row.CANCELLED)).encode("utf-8"),
                     b"status:is_diverted": str(row.DIVERTED).encode("utf-8"),
 
-                    # b"prediction:pred_label": row.PRED_LABEL.encode("utf-8"),
-                    # b"prediction:confidence": row.CONFIDENCE.encode("utf-8")
+                    b"prediction:pred_label": str(int(row.prediction)).encode("utf-8"),
+                    b"prediction:confidence": str(row.probability).encode("utf-8")
+                    # prediction: 0 - on time, 1 - delay, 2 - cancel
                 }
             )
 

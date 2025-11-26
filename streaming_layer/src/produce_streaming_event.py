@@ -11,7 +11,7 @@ def create_producer():
         'client.id': socket.gethostname(),
         'enable.idempotence': True,
         'max.in.flight.requests.per.connection': 1,
-        'transactional.id': 'producer-transactional',
+        'transactional.id': 'producer-transactional' + str(time.time()),
     }
 
     producer = Producer(conf)
@@ -54,7 +54,6 @@ if __name__ == "__main__":
                 producer.begin_transaction()
                 send_count = 0
                 for idx, row in chunk.iterrows():
-                    time.sleep(1) ###
                     print(f"Row: {row}, type: {type(row)}, columns: {row}")
                     record = row.to_dict()
                     print(f"Record: {record}, type: {type(record)}")

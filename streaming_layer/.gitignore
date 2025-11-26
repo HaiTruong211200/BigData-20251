@@ -5,3 +5,4 @@ __pycache__
 
 hbase/
 spark/
+checkpoint/

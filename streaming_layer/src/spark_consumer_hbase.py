@@ -1,15 +1,14 @@
 from pyspark.sql import SparkSession, Row
-# from pyspark.sql.classic.dataframe import DataFrame
 from pyspark.sql.functions import from_json, col, concat_ws, to_timestamp, trim, regexp_replace
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
 from pyspark.ml.pipeline import PipelineModel
 from happybase_hbase import HBaseClient, write_to_hbase
+import time
 
 import os
 
 os.environ["PYSPARK_PYTHON"] = r"C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe"
 os.environ["PYSPARK_DRIVER_PYTHON"] = r"C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe"
-
 
 # spark-submit --master local[*] --packages com.hortonworks:shc-core:1.1.1-2.1-s_2.11,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1 --repositories http://repo.hortonworks.com/content/groups/public/ --files /etc/hbase/conf/hbase-site.xml streaming_test_shc.py
 
@@ -20,18 +19,18 @@ spark = (
     .master("local[*]")
     .config("spark.driver.bindAddress", "127.0.0.1")
     .config("spark.driver.host", "127.0.0.1")
-    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1")
+    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1")
     .config("spark.python.worker.reuse", "false")
     .config("spark.network.timeout", "300s")
     .config("spark.executor.heartbeatInterval", "60s")
     .config("spark.sql.execution.arrow.pyspark.enabled", "true")
     .config("spark.sql.ansi.enabled", "false")
+    .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
     .getOrCreate()
 )
 
 MODEL_PATH = "../../MLModels/Model/DT"
 model = PipelineModel.load(MODEL_PATH)
-
 
 # Consume kafka event
 df_raw_kafka = (spark
@@ -42,7 +41,8 @@ df_raw_kafka = (spark
                 .option("includeHeaders", "true")
                 .option("kafka.isolation.level", "read_committed")
                 .option("startingOffsets", "earliest")
-                .load())
+                .load()
+)
 
 df_str_kafka = df_raw_kafka.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
 
@@ -132,18 +132,23 @@ df_dedup = df_parsed \
     .withWatermark("EVENT_TIME", "10 days") \
     .dropDuplicates(["row_key"])
 
-# df_predictions = model.transform(df_dedup)
+df_predictions = model.transform(df_dedup)
+df_output = df_predictions.select(
+    "prediction",
+    "probability",
+    *[c for c in df_dedup.columns]   # add original data
+)
+
 
 query_append = (
-    df_dedup
+    df_output
     .writeStream
     .format("console")
     .outputMode("append")
     .foreachBatch(write_to_hbase)
+    .option("checkpointLocation", f"checkpoint/checkpoint_{time.time()}")
     .option("truncate", False)
     .start()
-    # .option("numRows", 10)
-    # .start()
 )
 
 print("Waiting for data from Kafka...")
