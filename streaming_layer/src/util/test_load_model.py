@@ -11,7 +11,7 @@ spark = SparkSession.builder \
     .config("spark.hadoop.fs.local.block.size", "33554432") \
     .getOrCreate()
 
-model_path = r"../../MLModels/Model/DT"
+model_path = r"../../../MLModels/Model/DT"
 model = PipelineModel.load(model_path)
 
 print("Model loaded successfully!")
