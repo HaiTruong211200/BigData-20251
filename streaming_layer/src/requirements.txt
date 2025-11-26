@@ -1,5 +1,5 @@
-# python==3.12
-pyspark[sql,pandas_on_spark,ml]
+# python==3.10
+pyspark==3.5.1
 plotly
 matplotlib
 scikit-learn
@@ -7,3 +7,6 @@ numpy
 pandas
 pyarrow
 confluent-kafka
+happybase
+xgboost
+seaborn

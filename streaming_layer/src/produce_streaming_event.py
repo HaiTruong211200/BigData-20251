@@ -11,7 +11,7 @@ def create_producer():
         'client.id': socket.gethostname(),
         'enable.idempotence': True,
         'max.in.flight.requests.per.connection': 1,
-        'transactional.id': 'producer-transactional',
+        'transactional.id': 'producer-transactional' + str(time.time()),
     }
 
     producer = Producer(conf)

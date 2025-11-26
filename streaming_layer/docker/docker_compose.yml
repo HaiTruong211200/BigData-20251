@@ -19,7 +19,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker1:29093 #,2@broker2:29093,3@broker3:29093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker1:29093
       KAFKA_LISTENERS: PLAINTEXT://broker1:29092,CONTROLLER://broker1:29093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -33,8 +33,19 @@ services:
     networks:
       - test_network
 
+  hbase:
+    image: harisekhon/hbase
+    container_name: hbase
+    hostname: hbase
+    networks:
+      - test_network
+    ports:
+      - "16010:16010"
+      - "16020:16020"
+      - "2181:2181"
+      - "9090:9090"
+
 
 networks:
   test_network:
      driver: bridge
-#    external: true
