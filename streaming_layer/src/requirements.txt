@@ -8,3 +8,5 @@ pandas
 pyarrow
 confluent-kafka
 happybase
+xgboost
+seaborn

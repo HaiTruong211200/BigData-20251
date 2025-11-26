@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession, Row
-from pyspark.sql.classic.dataframe import DataFrame
+# from pyspark.sql.classic.dataframe import DataFrame
 from pyspark.sql.functions import from_json, col, concat_ws, to_timestamp, trim, regexp_replace
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
 from pyspark.ml.pipeline import PipelineModel
@@ -29,8 +29,8 @@ spark = (
     .getOrCreate()
 )
 
-# MODEL_PATH = "../../MLModels/Model/DT"
-# model = PipelineModel.load(MODEL_PATH)
+MODEL_PATH = "../../MLModels/Model/DT"
+model = PipelineModel.load(MODEL_PATH)
 
 
 # Consume kafka event

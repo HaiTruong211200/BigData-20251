@@ -1,5 +1,5 @@
 import happybase
-from pyspark.sql.classic.dataframe import DataFrame
+from pyspark.sql import DataFrame
 
 
 class HBaseClient:
