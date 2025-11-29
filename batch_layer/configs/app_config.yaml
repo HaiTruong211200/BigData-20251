@@ -1,3 +1,13 @@
+kafka:
+  # Địa chỉ của Kafka Broker.
+  bootstrap_servers: "localhost:9092"
+
+  # Tên Topic (Kênh) để bắn và nhận dữ liệu
+  topic: "flight_delay_data"
+
+  # Consumer Group ID (Dành cho Spark Streaming)
+  consumer_group: "spark_ingestion_group"
+
 database:
   url: "postgresql://postgres:[YOUR_PASSWORD]@db.rptautrxdyguuhfabzls.supabase.co:5432/postgres"
   user: "DB_USER"
