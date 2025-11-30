@@ -2,7 +2,7 @@
 
 This project represents our collaborative work on Big Data, focusing on building a scalable **Lambda Architecture** for processing flight sensor data. The system handles both real-time data ingestion and historical batch processing to predict flight delays and generate operational KPIs.
 
-![alt text](image.png)
+![System Architecture](images/architecture_v2.png)
 
 ## Project Overview
 
