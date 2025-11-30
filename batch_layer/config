@@ -1,0 +1,45 @@
+# --- CORE SITE ---
+# Đường dẫn mặc định của HDFS
+CORE-SITE.XML_fs.default.name=hdfs://namenode:9000
+CORE-SITE.XML_fs.defaultFS=hdfs://namenode:9000
+
+# --- HDFS SITE ---
+# QUAN TRỌNG: Đặt cổng 9000 để khớp với docker-compose và code Spark
+HDFS-SITE.XML_dfs.namenode.rpc-address=namenode:9000
+# Chỉ có 1 datanode nên replication = 1 (mặc định là 3 sẽ báo lỗi)
+HDFS-SITE.XML_dfs.replication=2
+# Cho phép ghi dữ liệu qua WebHDFS
+HDFS-SITE.XML_dfs.webhdfs.enabled=true
+# Tắt check quyền để code local dễ ghi xóa
+HDFS-SITE.XML_dfs.permissions.enabled=false
+HDFS-SITE.XML_dfs.client.use.datanode.hostname=true
+HDFS-SITE.XML_dfs.datanode.use.datanode.hostname=true
+
+# --- MAPRED SITE ---
+MAPRED-SITE.XML_mapreduce.framework.name=yarn
+MAPRED-SITE.XML_yarn.app.mapreduce.am.env=HADOOP_MAPRED_HOME=$HADOOP_HOME
+MAPRED-SITE.XML_mapreduce.map.env=HADOOP_MAPRED_HOME=$HADOOP_HOME
+MAPRED-SITE.XML_mapreduce.reduce.env=HADOOP_MAPRED_HOME=$HADOOP_HOME
+
+# --- YARN SITE ---
+YARN-SITE.XML_yarn.resourcemanager.hostname=resourcemanager
+# Tắt check RAM ảo/vật lý để tránh kill container oan ức trên máy yếu
+YARN-SITE.XML_yarn.nodemanager.pmem-check-enabled=false
+YARN-SITE.XML_yarn.nodemanager.vmem-check-enabled=false
+YARN-SITE.XML_yarn.nodemanager.aux-services=mapreduce_shuffle
+YARN-SITE.XML_yarn.nodemanager.delete.debug-delay-sec=600
+
+# --- CAPACITY SCHEDULER (Giữ nguyên để YARN chạy ổn định) ---
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.maximum-applications=10000
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.maximum-am-resource-percent=0.1
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.resource-calculator=org.apache.hadoop.yarn.util.resource.DefaultResourceCalculator
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.queues=default
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.capacity=100
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.user-limit-factor=1
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.maximum-capacity=100
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.state=RUNNING
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.acl_submit_applications=*
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.acl_administer_queue=*
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.node-locality-delay=40
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.queue-mappings=
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.queue-mappings-override.enable=false

@@ -1,9 +1,0 @@
-database:
-  url: "postgresql://postgres:[YOUR_PASSWORD]@db.rptautrxdyguuhfabzls.supabase.co:5432/postgres"
-  user: "DB_USER"
-  password: "DB_PASSWORD"
-  driver: "org.postgresql.Driver"
-
-  # Quan trọng: Tên bảng đích
-  table_kpi_daily: "kpi_daily_report"
-  table_kpi_trend: "kpi_monthly_trend"

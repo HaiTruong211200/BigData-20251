@@ -17,6 +17,16 @@ def handle_missing_values(df: DataFrame) -> DataFrame:
     Xử lý dữ liệu bị thiếu (Null/NaN).
     - Loai bỏ các hàng có giá trị Null/NaN.
     """
-    df_clean = df.dropna()
+    essential_subset = [
+        "FL_DATE", 
+        "OP_UNIQUE_CARRIER", 
+        "ORIGIN", 
+        "DEST", 
+        "DEP_DELAY",
+        "DISTANCE"
+    ]
+    
+    # Loại bỏ hàng nếu bất kỳ cột nào trong danh sách essential_subset bị NULL
+    df_clean = df.dropna(subset=essential_subset)
     
     return df_clean
