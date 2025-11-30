@@ -1,5 +1,6 @@
 version: "2"
 services:
+  # PHẦN 1: KAFKA ECOSYSTEM
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.2
     environment:
@@ -15,6 +16,7 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
@@ -25,3 +27,112 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  # PHẦN 2: HADOOP HDFS (Lưu trữ Batch)
+  # namenode:
+  #   image: apache/hadoop:3
+  #   hostname: namenode
+  #   user: root
+  #   # command: ["hdfs", "namenode"]
+  #   command:
+  #     [
+  #       "/bin/bash",
+  #       "-c",
+  #       "test -d /tmp/hadoop-hadoop/dfs/name/current || hdfs namenode -format -force && hdfs namenode",
+  #     ]
+  #   ports:
+  #     - 9870:9870 # Web UI
+  #     - 9000:9000 # HDFS Namenode RPC
+  #   env_file:
+  #     - ./config
+  #   environment:
+  #     ENSURE_NAMENODE_DIR: "/tmp/hadoop-hadoop/dfs/name"
+  #   volumes:
+  #     - namenode_data:/tmp/hadoop-hadoop/dfs/name
+
+  # datanode:
+  #   image: apache/hadoop:3
+  #   user: root
+  #   command: ["hdfs", "datanode"]
+  #   ports:
+  #     - 9864:9864
+  #     - 9866:9866 # Quan trọng nhất: Cổng truyền data
+  #   env_file:
+  #     - ./config
+  #   volumes:
+  #     - datanode_data:/tmp/hadoop-hadoop/dfs/data
+
+  # # PHẦN 3: HADOOP YARN (Quản lý tài nguyên)
+  # resourcemanager:
+  #   image: apache/hadoop:3
+  #   hostname: resourcemanager
+  #   command: ["yarn", "resourcemanager"]
+  #   ports:
+  #     - 8088:8088 # Web UI của YARN
+  #   env_file:
+  #     - ./config
+
+  # nodemanager:
+  #   image: apache/hadoop:3
+  #   command: ["yarn", "nodemanager"]
+  #   env_file:
+  #     - ./config
+
+  # ingestion-job:
+  #   # build: . nghĩa là: "Hãy tìm file Dockerfile ở thư mục này và build nó"
+  #   build: .
+  #   container_name: spark-ingestion
+  #   user: root
+  #   volumes:
+  #     - ./:/app
+  #   depends_on:
+  #     - kafka
+  #     - namenode
+  #   # Tự động restart nếu code bị lỗi (hoặc chờ Kafka khởi động)
+  #   restart: on-failure
+  #   # Lệnh chạy Spark Submit ngay khi bật lên
+  #   command: >
+  #     /opt/spark/bin/spark-submit
+  #     --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
+  #     /app/src/put_data_hdfs.py
+  #     --config /app/configs/docker_config.yaml
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000" # Cổng API (Code gọi vào đây)
+      - "9001:9001" # Cổng Web UI (Bạn xem file ở đây)
+    environment:
+      MINIO_ROOT_USER: "admin"
+      MINIO_ROOT_PASSWORD: "password123"
+    # Lệnh chạy server + mở Web UI
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  # --- 3. CONTAINER CHẠY CODE (WORKER) ---
+  # ingestion-job:
+  #   build: .
+  #   container_name: spark-ingestion
+  #   # Cấu hình biến môi trường AWS để Spark tự nhận diện S3
+  #   environment:
+  #     - AWS_ACCESS_KEY_ID=admin
+  #     - AWS_SECRET_ACCESS_KEY=password123
+  #     - AWS_REGION=us-east-1
+  #   depends_on:
+  #     - minio
+  #     - kafka
+  #   # Lệnh chạy: chú ý config mới
+  #   command: >
+  #     /opt/spark/bin/spark-submit
+  #     --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,org.apache.hadoop:hadoop-aws:3.3.4
+  #     /app/src/put_data_hdfs.py
+  #     --config /app/configs/minio_config.yaml
+
+volumes:
+  minio_data:
+# Định nghĩa nơi lưu dữ liệu trên ổ cứng thật
+# volumes:
+#   namenode_data:
+#   datanode_data:

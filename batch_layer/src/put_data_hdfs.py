@@ -37,4 +37,3 @@ def store_data_in_hdfs(transaction_data):
 
     print(f"Data appended to HDFS path: {hdfs_path}")
 
-

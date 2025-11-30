@@ -1,6 +1,10 @@
+app_name: "Flight_Delay_System"
+
+# 1. Cấu hình Kafka
 kafka:
   # Địa chỉ của Kafka Broker.
   bootstrap_servers: "localhost:9092"
+  # bootstrap_servers: "kafka:29092" # Changed from localhost to kafka
 
   # Tên Topic (Kênh) để bắn và nhận dữ liệu
   topic: "flight_delay_data"
@@ -8,6 +12,21 @@ kafka:
   # Consumer Group ID (Dành cho Spark Streaming)
   consumer_group: "spark_ingestion_group"
 
+# 2. Cấu hình Đường dẫn
+paths:
+  # A. Đường dẫn Cục bộ (Local - Nơi chứa code và data input)
+  local_source_data: "data/stream_source/T_ONTIME_REPORTING_2025_M6.csv"
+
+  # B. Đường dẫn HDFS (Distributed - Nơi lưu trữ Big Data)
+  # hdfs_raw_data: "hdfs://localhost:9000/data/raw/flights/"
+  # hdfs_checkpoint: "hdfs://localhost:9000/checkpoints/ingestion/"
+  # hdfs_raw_data: "hdfs://namenode:9000/data/raw/flights/" # Changed from localhost to namenode
+  # hdfs_checkpoint: "hdfs://namenode:9000/checkpoints/ingestion/"
+  hdfs_raw_data: "s3a://warehouse/data/raw/flights/"
+  hdfs_checkpoint: "s3a://warehouse/checkpoints/ingestion/"
+  # hdfs_model: "hdfs://localhost:9000/models/flight_delay_v1/"
+
+# 3. Cấu hình Database
 database:
   url: "postgresql://postgres:[YOUR_PASSWORD]@db.rptautrxdyguuhfabzls.supabase.co:5432/postgres"
   user: "DB_USER"

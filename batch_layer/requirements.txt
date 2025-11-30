@@ -1,2 +1,2 @@
 kafka-python
-pyspark
+pyspark=3.5.1
