@@ -1,4 +1,5 @@
 .idea/*
+.env
 
 # Remove unnecessary models
 MLModels/Model/LR/
