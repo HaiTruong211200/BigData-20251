@@ -4,11 +4,14 @@ from pyspark.sql.types import StructType, StructField, IntegerType, StringType, 
 from pyspark.ml.pipeline import PipelineModel
 from streaming_layer.src.util.happybase_hbase import write_to_hbase
 import time
+from dotenv import load_dotenv
 
 import os
 
-os.environ["PYSPARK_PYTHON"] = r"C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe"
-os.environ["PYSPARK_DRIVER_PYTHON"] = r"C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe"
+load_dotenv()
+
+os.environ["PYSPARK_PYTHON"] = os.getenv("PYSPARK_PYTHON")
+os.environ["PYSPARK_DRIVER_PYTHON"] = os.getenv("PYSPARK_DRIVER_PYTHON")
 
 # spark-submit --master local[*] --packages com.hortonworks:shc-core:1.1.1-2.1-s_2.11,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1 --repositories http://repo.hortonworks.com/content/groups/public/ --files /etc/hbase/conf/hbase-site.xml streaming_test_shc.py
 
