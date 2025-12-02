@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from "react";
 import { Row, Col } from "antd";
 import FilterBar from "../components/FilterBar";
@@ -26,9 +28,8 @@ const AirlineAnalysisTab: React.FC = () => {
 
     return (
         <>
-            <FilterBar />
-
-            <div className="mt-4">
+            <FilterBar enabledFilters={["dateRange", "airline"]} />
+            <div className="mt-6">
                 {/* Chart 1: Bảng xếp hạng */}
                 <AirlinePerformanceTable data={leaderboardData} />
 

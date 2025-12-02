@@ -8,7 +8,14 @@ import FlightTrendsChart from '../components/overview/FlightTrendsChart';
 export default function OverviewTab() {
     return (
         <>
-            <FilterBar />
+            <FilterBar 
+                enabledFilters={[
+                    "dateRange",
+                    "airline",
+                    "originAirport",
+                    "destinationAirport",
+                ]}
+            />
             <div style={{ marginTop: 24 }}>
                 <SummaryCards />
             </div>

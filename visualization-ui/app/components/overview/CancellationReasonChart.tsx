@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react';
 import { Card } from 'antd';
 import { PieChart, Pie, Tooltip, Cell, Legend, ResponsiveContainer } from 'recharts';
