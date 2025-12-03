@@ -25,6 +25,7 @@ def run_ingestion(spark, config):
             .option("kafka.bootstrap.servers", config["kafka"]["bootstrap_servers"])
             .option("subscribe", config["kafka"]["topic"])
             .option("startingOffsets", "earliest")
+            .option("failOnDataLoss", "true")
             .load()
         )
         print(">>> [DEBUG] STEP 2: KAFKA CONNECTED SUCCESSFULLY")
