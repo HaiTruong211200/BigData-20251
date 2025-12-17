@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: bigdata
+data:
+  app_config.yaml: |
+    kafka:
+      bootstrap_servers: "kafka-service.bigdata.svc.cluster.local:9092"
+      topic: "flight_sensor_data"
+
+    minio_config:
+      endpoint: "http://minio-service.bigdata.svc.cluster.local:9000"
+      access_key: "admin"
+      secret_key: "password123"
+      bucket: "warehouse"
+
+    database:
+      url: "postgresql://neondb_owner:....@ep-cool-cloud.us-east-2.aws.neon.tech/neondb?sslmode=require"
