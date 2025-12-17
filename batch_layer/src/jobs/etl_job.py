@@ -11,10 +11,13 @@ from src.utils.spark_session import get_spark_session
 from src.utils.flight_schema import spark_schema
 
 from src.transformations.cleaner import cast_column_types, handle_missing_values
-from src.transformations.aggregator import calculate_daily_stats
+from src.transformations.aggregator import calculate_daily_stats, calculate_daily_stats_by_airline, calculate_daily_stats_by_destination_airport, calculate_daily_stats_by_origin_airport
 
 MINIO_RAW_PATH = "s3a://warehouse/data/raw/flights/"
-REPORT_TABLE_FLIGHT_DAILY = "flight_daily_stats"
+REPORT_TABLE_FLIGHT_DAILY = "flights_daily_stats"
+REPORT_TABLE_FLIGHT_DAILY_BY_AIRLINE = "airline_daily_stats"
+REPORT_TABLE_FLIGHT_DAILY_BY_DESTINATION = "destination_airport_daily_stats"
+REPORT_TABLE_FLIGHT_DAILY_BY_ORIGIN = "origin_airport_daily_stats"
 
 def run_etl_job(spark: SparkSession, config: dict):
     """
@@ -61,6 +64,34 @@ def run_etl_job(spark: SparkSession, config: dict):
         table_name=REPORT_TABLE_FLIGHT_DAILY, 
         mode="replace"
     )
+
+    df_kpi_flight_by_airline = calculate_daily_stats_by_airline(df_clean)
+    print(f"   -> Ghi báo cáo theo ngày & hãng bay vào Supabase (Bảng: {REPORT_TABLE_FLIGHT_DAILY_BY_AIRLINE})...")
+    write_data_to_neon(
+        spark_df=df_kpi_flight_by_airline, 
+        table_name=REPORT_TABLE_FLIGHT_DAILY_BY_AIRLINE, 
+        mode="replace"
+    )
+
+    df_kpi_flight_by_destination = calculate_daily_stats_by_destination_airport(df_clean)
+    print(f"   -> Ghi báo cáo theo ngày & sân bay đến vào Supabase (Bảng: {REPORT_TABLE_FLIGHT_DAILY_BY_DESTINATION})...")
+    write_data_to_neon(
+        spark_df=df_kpi_flight_by_destination, 
+        table_name=REPORT_TABLE_FLIGHT_DAILY_BY_DESTINATION, 
+        mode="replace"
+    )
+
+    df_kpi_flight_by_origin = calculate_daily_stats_by_origin_airport(df_clean)
+    print(f"   -> Ghi báo cáo theo ngày & sân bay đi vào Supabase (Bảng: {REPORT_TABLE_FLIGHT_DAILY_BY_ORIGIN})...")
+    write_data_to_neon(
+        spark_df=df_kpi_flight_by_origin, 
+        table_name=REPORT_TABLE_FLIGHT_DAILY_BY_ORIGIN, 
+        mode="replace"
+    )
+
+     # Kết thúc ETL Job
+
+
     
     print("\n✅ BATCH ETL JOB: HOÀN THÀNH. Dữ liệu đã sẵn sàng cho Visualization!")
     print("="*60)

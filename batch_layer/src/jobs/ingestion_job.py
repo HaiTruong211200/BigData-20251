@@ -3,7 +3,7 @@ import os
 import sys
 import yaml
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, year, month, dayofmonth
+from pyspark.sql.functions import from_json, col, year, month, dayofmonth, to_date, to_timestamp
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 
 # CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -40,10 +40,15 @@ def run_ingestion(spark, config):
         df_parsed = (
             df_kafka
             .select(from_json(col("value").cast("string"), spark_schema).alias("data"), col("timestamp"))
-            .select("data.*", "timestamp")
-            .withColumn("year", year(col("timestamp")))
-            .withColumn("month", month(col("timestamp")))
-            .withColumn("day", dayofmonth(col("timestamp")))
+            .select("data.*")
+            .withColumn("flight_date", to_date(to_timestamp(col("FL_DATE"), "M/d/yyyy h:mm:ss a")))
+            .withColumn("year", year(col("flight_date")))
+            .withColumn("month", month(col("flight_date")))
+            .withColumn("day", dayofmonth(col("flight_date")))
+            # .select("data.*", "timestamp")
+            # .withColumn("year", year(col("timestamp")))
+            # .withColumn("month", month(col("timestamp")))
+            # .withColumn("day", dayofmonth(col("timestamp")))
         )
         
         print("--- Expected Schema: ---")
@@ -70,6 +75,7 @@ def run_ingestion(spark, config):
             .partitionBy("year", "month", "day")
             .outputMode("append")
             .trigger(processingTime="1 minute")
+            # .trigger(processingTime="10 seconds")
             .start()
         )
         

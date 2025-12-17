@@ -10,11 +10,12 @@ with open("./configs/app_config.yaml", "r", encoding="utf-8") as f:
 
 PRODUCER = KafkaProducer(
     bootstrap_servers=config['kafka']['bootstrap_servers'],
+    # bootstrap_servers="localhost:19092",
     value_serializer=lambda x: json.dumps(x).encode('utf-8')
 )
 
 TOPIC = config['kafka']['topic']
-CSV_FILE = "./data/T_ONTIME_REPORTING_2025_M6.csv"
+CSV_FILE = "./data/T_ONTIME_REPORTING_2025_M5.csv"
 
 def run():
     print(f"Bắt đầu Replay dữ liệu từ {CSV_FILE} vào topic '{TOPIC}'...")
@@ -28,7 +29,7 @@ def run():
             PRODUCER.send(TOPIC, value=record)
             print(f"-> Sent: {record.get('OP_UNIQUE_CARRIER')} | Date: {record.get('FL_DATE')}")
             
-            time.sleep(0.5) # Giả lập độ trễ (0.5s một bản tin)
+            time.sleep(0.0001) # Giả lập độ trễ (0.5s một bản tin)
 
 if __name__ == "__main__":
     run()

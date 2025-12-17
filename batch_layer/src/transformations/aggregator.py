@@ -30,16 +30,36 @@ def calculate_daily_stats(df: DataFrame) -> DataFrame:
         df.groupBy("flight_date")
           .agg(
               F.count("*").alias("total_flights"),
-              F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
+            #   F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
               F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0)).alias("delayed_flights"),
-              F.sum(F.when(F.col("cancelled") == 1, 1).otherwise(0)).alias("cancelled_flights"),
+              F.sum(F.col("cancellation_code").isNotNull().cast("int")).alias("cancelled_flights"),
+              (
+                F.count("*")
+                - F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0))
+                - F.sum(F.col("cancellation_code").isNotNull().cast("int"))
+            ).alias("on_time_flights"),
+
+              F.sum(F.when(F.col("cancellation_code") == "A", 1).otherwise(0)).alias("carrier_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "B", 1).otherwise(0)).alias("weather_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "C", 1).otherwise(0)).alias("national_air_system_cancel_total"),   
+              F.sum(F.when(F.col("cancellation_code") == "D", 1).otherwise(0)).alias("security_cancel_total"),
 
               # Delay sums
-              F.sum("carrier_delay").alias("carrier_delay_total"),
-              F.sum("weather_delay").alias("weather_delay_total"),
-              F.sum("nas_delay").alias("nas_delay_total"),
-              F.sum("security_delay").alias("security_delay_total"),
-              F.sum("late_aircraft_delay").alias("late_aircraft_delay_total"),
+              F.sum("carrier_delay").alias("carrier_delay_total_minutes"),
+              F.sum("weather_delay").alias("weather_delay_total_minutes"),
+              F.sum("nas_delay").alias("nas_delay_total_minutes"),
+              F.sum("security_delay").alias("security_delay_total_minutes"),
+              F.sum("late_aircraft_delay").alias("late_aircraft_delay_total_minutes"),
+
+              F.sum(
+                    F.coalesce(F.col("carrier_delay"), F.lit(0)) +
+                    F.coalesce(F.col("weather_delay"), F.lit(0)) +
+                    F.coalesce(F.col("nas_delay"), F.lit(0)) +
+                    F.coalesce(F.col("security_delay"), F.lit(0)) +
+                    F.coalesce(F.col("late_aircraft_delay"), F.lit(0))
+                ).alias("all_delay_total_minutes")
           )
     ).orderBy("flight_date")
 
@@ -49,20 +69,40 @@ def calculate_daily_stats_by_airline(df: DataFrame) -> DataFrame:
     """
 
     return (
-        df.groupBy("flight_date", "op_carrier_airline_id")
+        df.groupBy("flight_date", "op_unique_carrier")
           .agg(
               F.count("*").alias("total_flights"),
-              F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
+            #   F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
               F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0)).alias("delayed_flights"),
-              F.sum(F.when(F.col("cancelled") == 1, 1).otherwise(0)).alias("cancelled_flights"),
+              F.sum(F.col("cancellation_code").isNotNull().cast("int")).alias("cancelled_flights"),
+                            (
+                F.count("*")
+                - F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0))
+                - F.sum(F.col("cancellation_code").isNotNull().cast("int"))
+            ).alias("on_time_flights"),
 
-              F.sum("carrier_delay").alias("carrier_delay_total"),
-              F.sum("weather_delay").alias("weather_delay_total"),
-              F.sum("nas_delay").alias("nas_delay_total"),
-              F.sum("security_delay").alias("security_delay_total"),
-              F.sum("late_aircraft_delay").alias("late_aircraft_delay_total"),
+              F.sum(F.when(F.col("cancellation_code") == "A", 1).otherwise(0)).alias("carrier_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "B", 1).otherwise(0)).alias("weather_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "C", 1).otherwise(0)).alias("national_air_system_cancel_total"),   
+              F.sum(F.when(F.col("cancellation_code") == "D", 1).otherwise(0)).alias("security_cancel_total"),
+
+              F.sum("carrier_delay").alias("carrier_delay_total_minutes"),
+              F.sum("weather_delay").alias("weather_delay_total_minutes"),
+              F.sum("nas_delay").alias("nas_delay_total_minutes"),
+              F.sum("security_delay").alias("security_delay_total_minutes"),
+              F.sum("late_aircraft_delay").alias("late_aircraft_delay_total_minutes"),
+
+              F.sum(
+                    F.coalesce(F.col("carrier_delay"), F.lit(0)) +
+                    F.coalesce(F.col("weather_delay"), F.lit(0)) +
+                    F.coalesce(F.col("nas_delay"), F.lit(0)) +
+                    F.coalesce(F.col("security_delay"), F.lit(0)) +
+                    F.coalesce(F.col("late_aircraft_delay"), F.lit(0))
+                ).alias("all_delay_total_minutes")
           )
-    ).orderBy("op_carrier_airline_id", "flight_date")
+    ).orderBy("op_unique_carrier", "flight_date")
 
 def calculate_daily_stats_by_origin_airport(df: DataFrame) -> DataFrame:
     """
@@ -70,20 +110,40 @@ def calculate_daily_stats_by_origin_airport(df: DataFrame) -> DataFrame:
     """
 
     return (
-        df.groupBy("flight_date", "origin_airport_id")
+        df.groupBy("flight_date", "origin")
           .agg(
               F.count("*").alias("total_flights"),
-              F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
+            #   F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
               F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0)).alias("delayed_flights"),
-              F.sum(F.when(F.col("cancelled") == 1, 1).otherwise(0)).alias("cancelled_flights"),
+              F.sum(F.col("cancellation_code").isNotNull().cast("int")).alias("cancelled_flights"),
+                            (
+                F.count("*")
+                - F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0))
+                - F.sum(F.col("cancellation_code").isNotNull().cast("int"))
+            ).alias("on_time_flights"),
 
-              F.sum("carrier_delay").alias("carrier_delay_total"),
-              F.sum("weather_delay").alias("weather_delay_total"),
-              F.sum("nas_delay").alias("nas_delay_total"),
-              F.sum("security_delay").alias("security_delay_total"),
-              F.sum("late_aircraft_delay").alias("late_aircraft_delay_total"),
+              F.sum(F.when(F.col("cancellation_code") == "A", 1).otherwise(0)).alias("carrier_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "B", 1).otherwise(0)).alias("weather_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "C", 1).otherwise(0)).alias("national_air_system_cancel_total"),   
+              F.sum(F.when(F.col("cancellation_code") == "D", 1).otherwise(0)).alias("security_cancel_total"),
+
+              F.coalesce(F.sum("carrier_delay"), F.lit(0)).alias("carrier_delay_total_minutes"),
+                F.coalesce(F.sum("weather_delay"), F.lit(0)).alias("weather_delay_total_minutes"),
+                F.coalesce(F.sum("nas_delay"), F.lit(0)).alias("nas_delay_total_minutes"),
+                F.coalesce(F.sum("security_delay"), F.lit(0)).alias("security_delay_total_minutes"),
+                F.coalesce(F.sum("late_aircraft_delay"), F.lit(0)).alias("late_aircraft_delay_total_minutes"),
+
+              F.sum(
+                    F.coalesce(F.col("carrier_delay"), F.lit(0)) +
+                    F.coalesce(F.col("weather_delay"), F.lit(0)) +
+                    F.coalesce(F.col("nas_delay"), F.lit(0)) +
+                    F.coalesce(F.col("security_delay"), F.lit(0)) +
+                    F.coalesce(F.col("late_aircraft_delay"), F.lit(0))
+                ).alias("all_delay_total_minutes")
           )
-    ).orderBy("origin_airport_id", "flight_date")
+    ).orderBy("origin", "flight_date")
 
 def calculate_daily_stats_by_destination_airport(df: DataFrame) -> DataFrame:
     """
@@ -91,17 +151,36 @@ def calculate_daily_stats_by_destination_airport(df: DataFrame) -> DataFrame:
     """
 
     return (
-        df.groupBy("flight_date", "dest_airport_id")
+        df.groupBy("flight_date", "dest")
           .agg(
               F.count("*").alias("total_flights"),
-              F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
+            #   F.sum(F.when(F.col("arr_delay") <= 0, 1).otherwise(0)).alias("on_time_flights"),
               F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0)).alias("delayed_flights"),
-              F.sum(F.when(F.col("cancelled") == 1, 1).otherwise(0)).alias("cancelled_flights"),
+              F.sum(F.col("cancellation_code").isNotNull().cast("int")).alias("cancelled_flights"),
+                            (
+                F.count("*")
+                - F.sum(F.when(F.col("arr_delay") > 0, 1).otherwise(0))
+                - F.sum(F.col("cancellation_code").isNotNull().cast("int"))
+            ).alias("on_time_flights"),
 
-              F.sum("carrier_delay").alias("carrier_delay_total"),
-              F.sum("weather_delay").alias("weather_delay_total"),
-              F.sum("nas_delay").alias("nas_delay_total"),
-              F.sum("security_delay").alias("security_delay_total"),
-              F.sum("late_aircraft_delay").alias("late_aircraft_delay_total"),
+              F.sum(F.when(F.col("cancellation_code") == "A", 1).otherwise(0)).alias("carrier_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "B", 1).otherwise(0)).alias("weather_cancel_total"),
+
+              F.sum(F.when(F.col("cancellation_code") == "C", 1).otherwise(0)).alias("national_air_system_cancel_total"),   
+              F.sum(F.when(F.col("cancellation_code") == "D", 1).otherwise(0)).alias("security_cancel_total"),
+
+                F.coalesce(F.sum("carrier_delay"), F.lit(0)).alias("carrier_delay_total_minutes"),
+                F.coalesce(F.sum("weather_delay"), F.lit(0)).alias("weather_delay_total_minutes"),
+                F.coalesce(F.sum("nas_delay"), F.lit(0)).alias("nas_delay_total_minutes"),
+                F.coalesce(F.sum("security_delay"), F.lit(0)).alias("security_delay_total_minutes"),
+                F.coalesce(F.sum("late_aircraft_delay"), F.lit(0)).alias("late_aircraft_delay_total_minutes"),
+              F.sum(
+                    F.coalesce(F.col("carrier_delay"), F.lit(0)) +
+                    F.coalesce(F.col("weather_delay"), F.lit(0)) +
+                    F.coalesce(F.col("nas_delay"), F.lit(0)) +
+                    F.coalesce(F.col("security_delay"), F.lit(0)) +
+                    F.coalesce(F.col("late_aircraft_delay"), F.lit(0))
+                ).alias("all_delay_total_minutes")
           )
-    ).orderBy("dest_airport_id", "flight_date")
+    ).orderBy("dest", "flight_date")
