@@ -10,3 +10,5 @@ confluent-kafka
 happybase
 xgboost
 seaborn
+dotenv
+cassandra-driver

@@ -33,18 +33,72 @@ services:
     networks:
       - test_network
 
-  hbase:
-    image: harisekhon/hbase
-    container_name: hbase
-    hostname: hbase
+#  hbase:
+#    image: harisekhon/hbase
+#    container_name: hbase
+#    hostname: hbase
+#    networks:
+#      - test_network
+#    ports:
+#      - "16010:16010"
+#      - "16020:16020"
+#      - "2181:2181"
+#      - "9090:9090"
+
+  cassandra_1:
+    image: cassandra:4.1
+    container_name: cassandra_1
+    hostname: cassandra_1
     networks:
       - test_network
+    environment:
+      CASSANDRA_CLUSTER_NAME: test-cluster
+      CASSANDRA_SEEDS: cassandra_1
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+    volumes:
+      - ./volume/cassandra/node_1:/var/lib/cassandra
     ports:
-      - "16010:16010"
-      - "16020:16020"
-      - "2181:2181"
-      - "9090:9090"
+      - "9042:9042"
+      - "7000:7000"
+    restart: unless-stopped
 
+  cassandra_2:
+    image: cassandra:4.1
+    container_name: cassandra_2
+    hostname: cassandra_2
+    networks:
+      - test_network
+    environment:
+      CASSANDRA_CLUSTER_NAME: test-cluster
+      CASSANDRA_SEEDS: cassandra_1
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+    volumes:
+      - ./volume/cassandra/node_2:/var/lib/cassandra
+    depends_on:
+      - cassandra_1
+    restart: unless-stopped
+
+#  cassandra_3:
+#    image: cassandra:4.1
+#    container_name: cassandra_3
+#    hostname: cassandra_3
+#    networks:
+#      - test_network
+#    environment:
+#      CASSANDRA_CLUSTER_NAME: test-cluster
+#      CASSANDRA_SEEDS: cassandra_1
+#      CASSANDRA_DC: dc1
+#      CASSANDRA_RACK: rack1
+#      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+#    volumes:
+#      - ./volume/cassandra/node_3:/var/lib/cassandra
+#    depends_on:
+#      - cassandra_1
+#    restart: unless-stopped
 
 networks:
   test_network:
