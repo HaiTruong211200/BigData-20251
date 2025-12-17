@@ -12,3 +12,4 @@ xgboost
 seaborn
 dotenv
 cassandra-driver
+hbase
