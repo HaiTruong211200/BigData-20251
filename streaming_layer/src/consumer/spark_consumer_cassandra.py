@@ -2,6 +2,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, concat_ws, to_timestamp, trim, regexp_replace
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
 from pyspark.ml.pipeline import PipelineModel
+
+from streaming_layer.src.util.cassandra.cassandra_util import write_to_cassandra
 from streaming_layer.src.util.hbase.happybase_hbase import write_to_hbase
 import time
 from dotenv import load_dotenv
@@ -10,10 +12,8 @@ import os
 
 load_dotenv()
 
-# os.environ["PYSPARK_PYTHON"] = os.getenv("PYSPARK_PYTHON")
-# os.environ["PYSPARK_DRIVER_PYTHON"] = os.getenv("PYSPARK_DRIVER_PYTHON")
-
-# spark-submit --master local[*] --packages com.hortonworks:shc-core:1.1.1-2.1-s_2.11,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1 --repositories http://repo.hortonworks.com/content/groups/public/ --files /etc/hbase/conf/hbase-site.xml streaming_test_shc.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ASTRA_BUNDLE_PATH = os.path.join(BASE_DIR, "conf", "secure-connect-bigdata-cassandra.zip")
 
 # Create spark
 spark = (
@@ -22,7 +22,12 @@ spark = (
     .master("local[*]")
     .config("spark.driver.bindAddress", "127.0.0.1")
     .config("spark.driver.host", "127.0.0.1")
-    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1")
+    .config("spark.cassandra.connection.config.cloud.path", "secure-connect-bigdata-cassandra.zip")
+    .config("spark.files", ASTRA_BUNDLE_PATH)
+    .config("spark.cassandra.auth.username", "token")
+    .config("spark.cassandra.auth.password", os.getenv("ASTRA_PASSWORD"))
+    .config("spark.cassandra.output.consistency.level", "LOCAL_QUORUM")
+    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,""com.datastax.spark:spark-cassandra-connector_2.12:3.5.1")
     .config("spark.python.worker.reuse", "false")
     .config("spark.network.timeout", "300s")
     .config("spark.executor.heartbeatInterval", "60s")
@@ -146,14 +151,12 @@ df_output = df_predictions.select(
 query_append = (
     df_output
     .writeStream
-    .format("console")
     .outputMode("append")
-    .foreachBatch(write_to_hbase)
-    .option("checkpointLocation", f"../checkpoint/checkpoint_{time.time()}")
-    .option("truncate", False)
+    .foreachBatch(write_to_cassandra)
+    .option("checkpointLocation", "../checkpoint/cassandra")
     .start()
 )
 
-print("Waiting for data from Kafka...")
 query_append.awaitTermination()
+
 

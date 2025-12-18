@@ -31,11 +31,12 @@ pip install -r requirements.txt
 
 ### Step 3: Add .env
 
-Create .env file in folder consumer and config python path (path for python.exe) \
+Create .env file in folder consumer and config python path (Only for Window) and token Astra for Cassandra\
 For example:
 ```
-PYSPARK_PYTHON=C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe
-PYSPARK_DRIVER_PYTHON=C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe
+PYSPARK_PYTHON=C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe (Only for Windows)
+PYSPARK_DRIVER_PYTHON=C:\Users\Lenovo\miniconda3\envs\pyspark_3.10\python.exe (Only for Windows)
+ASTRA_PASSWORD=AstraCS:xxxxxxxxxx
 ```
 
 ### Step 4: Start producing data to Kafka (Producer)
@@ -48,9 +49,9 @@ python src/producer/produce_streaming_event.py
 
 ### Step 5: Run Spark Consumer
 
-This job reads from Kafka, parse and use ML model to predict and save to HBase
+This job reads from Kafka, parse and use ML model to predict and save to Cassandra
 
 ```bash
-python src/consumer/spark_consumer_hbase.py
+python src/consumer/spark_consumer_cassandra.py
 ```
 

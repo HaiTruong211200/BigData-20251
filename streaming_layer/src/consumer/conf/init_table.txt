@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS flight_table (
+                         row_key text,
+                         origin text,
+                         dest text,
+                         fl_date date,
+                         tail_num text,
+                         distance double,
+                         dep_delay double,
+                         prediction int,
+                         confidence list<double>,
+                         PRIMARY KEY (row_key)
+                    );
