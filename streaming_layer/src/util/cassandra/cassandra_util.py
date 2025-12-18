@@ -1,50 +1,15 @@
-from cassandra.cluster import Cluster
-from cassandra import ConsistencyLevel
 from pyspark.sql import DataFrame
+from pyspark.sql.functions import to_date, col
+from pyspark.ml.functions import vector_to_array
 
+def write_to_cassandra(batch_df: DataFrame, batch_id: int):
+    print(f"\n=== BATCH {batch_id} ===")
+    print("Rows in batch:", batch_df.count())
 
-def write_to_cassandra(batch_df: DataFrame, batch_id):
+    batch_df.show(5, truncate=False)
+
     if batch_df.isEmpty():
         return
-
-    def write_partition(rows):
-        cluster = Cluster(["localhost"], port=9042)
-        session = cluster.connect("flight")
-
-        prepared = session.prepare("""
-            INSERT INTO flight_table (
-                row_key,
-                origin,
-                dest,
-                fl_date,
-                tail_num,
-                distance,
-                dep_delay,
-                prediction,
-                confidence
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """)
-
-        prepared.consistency_level = ConsistencyLevel.ONE
-
-        for r in rows:
-            session.execute(
-                prepared,
-                (
-                    r.row_key,
-                    r.ORIGIN,
-                    r.DEST,
-                    r.FL_DATE,
-                    r.TAIL_NUM,
-                    r.DISTANCE,
-                    r.DEP_DELAY,
-                    int(r.prediction),
-                    str(r.probability)
-                )
-            )
-
-        cluster.shutdown()
-
     (
         batch_df
         .select(
@@ -58,5 +23,23 @@ def write_to_cassandra(batch_df: DataFrame, batch_id):
             "prediction",
             "probability"
         )
-        .foreachPartition(write_partition)
+        .withColumn(
+            "fl_date",
+            to_date(col("FL_DATE"), "M/d/yyyy hh:mm:ss a")
+        )
+        .withColumnRenamed("ORIGIN", "origin")
+        .withColumnRenamed("DEST", "dest")
+        .withColumnRenamed("TAIL_NUM", "tail_num")
+        .withColumnRenamed("DISTANCE", "distance")
+        .withColumnRenamed("DEP_DELAY", "dep_delay")
+        # .withColumnRenamed("probability", "confidence")
+        .withColumn("confidence", vector_to_array(col("probability")))
+        .drop("probability")
+        .write
+        .format("org.apache.spark.sql.cassandra")
+        .option("keyspace", "default_keyspace")
+        .option("table", "flight_table")
+        .mode("append")
+        .save()
     )
+
