@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # Data path
     data_path = "./data/dataset.csv"  # Path to data
-    topic = "streaming_layer_topic"
+    topic = "flight_topic"
 
     # Read data
     chunk_size = 1000

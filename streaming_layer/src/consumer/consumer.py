@@ -13,7 +13,7 @@ from pyspark.ml.functions import vector_to_array
 from pyspark.sql.types import *
 from pyspark.ml import PipelineModel
 
-from src.util.flight_schema import spark_schema
+from streaming_layer.src.util.flight_schema import spark_schema
 
 
 
@@ -51,23 +51,24 @@ spark.sparkContext.setLogLevel("WARN")
 
 # ==========================================
 # 2. ĐỌC DỮ LIỆU TỪ KAFKA (Phải khớp cột trong CSV)
-raw_stream = spark.readStream \
-    .schema(spark_schema) \
-    .option("header", "true") \
-    .option("maxFilesPerTrigger", 1) \
-    .csv("./data") 
+# raw_stream = spark.readStream \
+#     .schema(spark_schema) \
+#     .option("header", "true") \
+#     .option("maxFilesPerTrigger", 1) \
+#     .csv("./data")
 
 # 1. Đọc Raw Data từ Kafka
-# kafka_raw_df = spark.readStream \
-#     .format("kafka") \
-#     .option("kafka.bootstrap.servers", "localhost:9092") \
-#     .option("subscribe", "flight_topic") \
-#     .option("startingOffsets", "latest") \
-#     .load()
+kafka_raw_df = spark.readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("subscribe", "flight_topic") \
+    .option("kafka.isolation.level", "read_committed") \
+    .option("startingOffsets", "latest") \
+    .load()
 
-# raw_stream = kafka_raw_df.select(
-#     from_json(col("value").cast("string"), spark_schema).alias("data")
-# ).select("data.*") 
+raw_stream = kafka_raw_df.select(
+    from_json(col("value").cast("string"), spark_schema).alias("data")
+).select("data.*")
 
 # 2. Giả lập ngày hiện tại cho dữ liệu (vì dữ liệu cũ từ 2025)
 
@@ -129,7 +130,7 @@ display_df = final_df.select(
 
 # ====================================================
 # LOAD MODEL ĐÃ TRAIN
-model_path = "./Model/DT"
+model_path = "../../Model/DT"
 try:
     flight_model = PipelineModel.load(model_path)
     print(">>> Đã load Model ML thành công!")
@@ -253,6 +254,10 @@ query_live = live_board_df.writeStream \
 # --- 1. Ghi Origin Stats & Global Ranking ---
 def save_origin_data(batch_df, batch_id):
     if batch_df.isEmpty(): return
+
+    print("Rows in batch:", batch_df.count())
+    batch_df.show(5, truncate=False)
+    print("Table: origin_stats" )
     
     # A. Ghi vào bảng 'origin_stats' (Line Chart)
     # Spark Window là struct {start, end}, ta lấy 'start' làm mốc thời gian
@@ -271,6 +276,10 @@ def save_origin_data(batch_df, batch_id):
 def save_dest_data(batch_df, batch_id):
     if batch_df.isEmpty(): return
 
+    print("Rows in batch:", batch_df.count())
+    batch_df.show(5, truncate=False)
+    print("Table: dest_stats" )
+
     batch_df.select(
         col("DEST").alias("dest"),
         col("window.start").alias("window_start"),
@@ -285,6 +294,10 @@ def save_dest_data(batch_df, batch_id):
 # --- 3. Ghi Live Board ---
 def save_live_board(batch_df, batch_id):
     if batch_df.isEmpty(): return
+
+    print("Rows in batch:", batch_df.count())
+    batch_df.show(5, truncate=False)
+    print("Table: live_board" )
 
     # batch_df này lấy từ live_board_df ở bước trước
     batch_df.select(
@@ -313,14 +326,14 @@ def save_live_board(batch_df, batch_id):
 query_origin = origin_kpi_df.writeStream \
     .foreachBatch(save_origin_data) \
     .outputMode("update") \
-    .option("checkpointLocation", "/tmp/cp/origin_v1") \
+    .option("checkpointLocation", "./tmp/cp/origin_v1") \
     .start()
 
 # Stream 2: Destination Stats
 query_dest = dest_kpi_df.writeStream \
     .foreachBatch(save_dest_data) \
     .outputMode("update") \
-    .option("checkpointLocation", "/tmp/cp/dest_v2") \
+    .option("checkpointLocation", "./tmp/cp/dest_v2") \
     .start()
 
 # Stream 3: Live Board (Chi tiết chuyến bay)
@@ -329,7 +342,7 @@ query_dest = dest_kpi_df.writeStream \
 query_live = live_board_df.writeStream \
     .foreachBatch(save_live_board) \
     .outputMode("append") \
-    .option("checkpointLocation", "/tmp/cp/live_v1") \
+    .option("checkpointLocation", "./tmp/cp/live_v1") \
     .start()
 
 print(">>> Streaming đang chạy và ghi vào Cassandra...")
