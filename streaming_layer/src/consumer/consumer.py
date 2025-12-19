@@ -8,7 +8,7 @@ from pyspark.sql.functions import (
     concat, lit, lpad,
     current_date
 )
-from pyspark.sql.functions import to_timestamp, date_format, expr, avg, count, sum, window, current_timestamp, from_json
+from pyspark.sql.functions import to_timestamp, date_format, expr, avg, count, sum, window, current_timestamp, from_json, coalesce
 from pyspark.ml.functions import vector_to_array
 from pyspark.sql.types import *
 from pyspark.ml import PipelineModel
@@ -58,16 +58,16 @@ raw_stream = spark.readStream \
     .csv("./data") 
 
 # 1. Đọc Raw Data từ Kafka
-kafka_raw_df = spark.readStream \
-    .format("kafka") \
-    .option("kafka.bootstrap.servers", "localhost:9092") \
-    .option("subscribe", "flight_topic") \
-    .option("startingOffsets", "latest") \
-    .load()
+# kafka_raw_df = spark.readStream \
+#     .format("kafka") \
+#     .option("kafka.bootstrap.servers", "localhost:9092") \
+#     .option("subscribe", "flight_topic") \
+#     .option("startingOffsets", "latest") \
+#     .load()
 
-raw_stream = kafka_raw_df.select(
-    from_json(col("value").cast("string"), spark_schema).alias("data")
-).select("data.*") 
+# raw_stream = kafka_raw_df.select(
+#     from_json(col("value").cast("string"), spark_schema).alias("data")
+# ).select("data.*") 
 
 # 2. Giả lập ngày hiện tại cho dữ liệu (vì dữ liệu cũ từ 2025)
 
@@ -187,11 +187,11 @@ dest_kpi_df = enriched_df \
     .withWatermark("ts_arr", "1 hour") \
     .filter(col("realtime_status").isin("AIRBORNE", "TAXI_IN", "COMPLETED")) \
     .groupBy(
-        window(col("ts_arr"), "1 hour", "5 minutes"),
+        window(col("ts_arr"), "3 hour", "30 minutes"),
         col("DEST")
     ).agg(
-        sum("is_holding").alias("holding_count"),
-        avg("NAS_DELAY").alias("avg_nas_delay")
+        coalesce(sum("is_holding"), lit(0)).alias("holding_count"),
+        coalesce(avg("NAS_DELAY"), lit(0)).alias("avg_nas_delay")
     )
 
 # --- STREAM C: LIVE BOARD (Chi tiết chuyến bay đang hoạt động) ---
@@ -228,22 +228,22 @@ query_live = live_board_df.writeStream \
 
 # Xuất KPI Origin (Sẽ thấy avg_taxi_out)
 # Dùng "update" mode cho Aggregation
-query_origin = origin_kpi_df.writeStream \
-    .outputMode("update") \
-    .format("console") \
-    .option("truncate", "false") \
-    .queryName("OriginKPIQuery") \
-    .start()
+# query_origin = origin_kpi_df.writeStream \
+#     .outputMode("update") \
+#     .format("console") \
+#     .option("truncate", "false") \
+#     .queryName("OriginKPIQuery") \
+#     .start()
 
-# Xuất KPI Dest
-query_dest = dest_kpi_df.writeStream \
-    .outputMode("update") \
-    .format("console") \
-    .option("truncate", "false") \
-    .queryName("DestKPIQuery") \
-    .start()
+# # Xuất KPI Dest
+# query_dest = dest_kpi_df.writeStream \
+#     .outputMode("update") \
+#     .format("console") \
+#     .option("truncate", "false") \
+#     .queryName("DestKPIQuery") \
+#     .start()
 
-spark.streams.awaitAnyTermination()
+# spark.streams.awaitAnyTermination()
 
 
 # ==============================================================================
@@ -264,7 +264,7 @@ def save_origin_data(batch_df, batch_id):
     ).write \
         .format("org.apache.spark.sql.cassandra") \
         .mode("append") \
-        .options(table="origin_stats", keyspace="flight_speed_layer") \
+        .options(table="origin_stats", keyspace="default_keyspace") \
         .save()
         
 # --- 2. Ghi Destination Stats ---
@@ -279,7 +279,7 @@ def save_dest_data(batch_df, batch_id):
     ).write \
         .format("org.apache.spark.sql.cassandra") \
         .mode("append") \
-        .options(table="dest_stats", keyspace="flight_speed_layer") \
+        .options(table="dest_stats", keyspace="default_keyspace") \
         .save()
 
 # --- 3. Ghi Live Board ---
@@ -289,7 +289,7 @@ def save_live_board(batch_df, batch_id):
     # batch_df này lấy từ live_board_df ở bước trước
     batch_df.select(
         col("ts_dep").alias("event_time"), # Lấy giờ khởi hành làm mốc
-        col("fl_code"), # VD: VN 123
+        col("flight_code"), # VD: VN 123
         col("fl_date"),
         col("op_carrier"),
         col("op_carrier_fl_num"),
@@ -302,7 +302,7 @@ def save_live_board(batch_df, batch_id):
     ).write \
         .format("org.apache.spark.sql.cassandra") \
         .mode("append") \
-        .options(table="live_board", keyspace="flight_speed_layer") \
+        .options(table="live_board", keyspace="default_keyspace") \
         .save()
 
 # ==============================================================================
@@ -310,27 +310,27 @@ def save_live_board(batch_df, batch_id):
 # ==============================================================================
 
 # Stream 1: Origin & Ranking
-# query_origin = origin_kpi_df.writeStream \
-#     .foreachBatch(save_origin_data) \
-#     .outputMode("update") \
-#     .option("checkpointLocation", "/tmp/cp/origin_v1") \
-#     .start()
+query_origin = origin_kpi_df.writeStream \
+    .foreachBatch(save_origin_data) \
+    .outputMode("update") \
+    .option("checkpointLocation", "/tmp/cp/origin_v1") \
+    .start()
 
-# # Stream 2: Destination Stats
-# query_dest = dest_kpi_df.writeStream \
-#     .foreachBatch(save_dest_data) \
-#     .outputMode("update") \
-#     .option("checkpointLocation", "/tmp/cp/dest_v1") \
-#     .start()
+# Stream 2: Destination Stats
+query_dest = dest_kpi_df.writeStream \
+    .foreachBatch(save_dest_data) \
+    .outputMode("update") \
+    .option("checkpointLocation", "/tmp/cp/dest_v2") \
+    .start()
 
-# # Stream 3: Live Board (Chi tiết chuyến bay)
-# # Lưu ý: Live board là dữ liệu chi tiết, dùng mode "append" hoặc "update" đều được
-# # Nhưng vì ta filter status, nên dùng "append" hợp lý hơn cho log
-# query_live = live_board_df.writeStream \
-#     .foreachBatch(save_live_board) \
-#     .outputMode("append") \
-#     .option("checkpointLocation", "/tmp/cp/live_v1") \
-#     .start()
+# Stream 3: Live Board (Chi tiết chuyến bay)
+# Lưu ý: Live board là dữ liệu chi tiết, dùng mode "append" hoặc "update" đều được
+# Nhưng vì ta filter status, nên dùng "append" hợp lý hơn cho log
+query_live = live_board_df.writeStream \
+    .foreachBatch(save_live_board) \
+    .outputMode("append") \
+    .option("checkpointLocation", "/tmp/cp/live_v1") \
+    .start()
 
-# print(">>> Streaming đang chạy và ghi vào Cassandra...")
-# spark.streams.awaitAnyTermination()
+print(">>> Streaming đang chạy và ghi vào Cassandra...")
+spark.streams.awaitAnyTermination()
