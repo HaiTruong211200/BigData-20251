@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer-job
+  namespace: bigdata
+  labels:
+    app: producer-job
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer-job
+  template:
+    metadata:
+      labels:
+        app: producer-job
+    spec:
+      containers:
+        - name: producer
+          image: flight-prediction:v2
+          imagePullPolicy: IfNotPresent # Dùng image local vừa build
+
+          # Chạy file producer
+          command: ["python", "-m", "src.data_generator.producer"]
+
+          resources:
+            limits:
+              memory: "512Mi" # Producer nhẹ, không cần nhiều RAM
+            requests:
+              memory: "256Mi"
+
+          # Mount ConfigMap để code biết địa chỉ Kafka và đường dẫn CSV
+          volumeMounts:
+            - name: config-vol
+              mountPath: /app/configs/app_config.yaml
+              subPath: app_config.yaml
+
+      volumes:
+        - name: config-vol
+          configMap:
+            name: app-config
+            items:
+              - key: app_config.yaml
+                path: app_config.yaml

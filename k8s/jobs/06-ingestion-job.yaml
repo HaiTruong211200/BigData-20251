@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-job
+  namespace: bigdata
+  labels:
+    app: ingestion-job
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingestion-job
+  template:
+    metadata:
+      labels:
+        app: ingestion-job
+    spec:
+      containers:
+        - name: ingestion
+          # Thay 'myuser' bằng tên user Docker Hub của bạn
+          image: flight-prediction:v2
+          imagePullPolicy: IfNotPresent
+
+          # Lệnh chạy file Python Ingestion
+          command: ["python", "-m", "src.jobs.ingestion_job"]
+
+          # Cấu hình tài nguyên (RAM) cho Spark để tránh OOMKilled
+          resources:
+            limits:
+              memory: "2Gi"
+            requests:
+              memory: "1Gi"
+
+          # 1. Mount Volume vào trong Container
+          volumeMounts:
+            - name: config-vol
+              mountPath: /app/configs/app_config.yaml # Đường dẫn đích trong Container
+              subPath: app_config.yaml # Chỉ lấy đúng 1 file này
+
+      # 2. Khai báo Volume (Cùng cấp với containers)
+      volumes:
+        - name: config-vol
+          configMap:
+            name: app-config
+            # Sửa lỗi "path required": Đã thêm dòng path bên dưới
+            items:
+              - key: app_config.yaml # Tên key trong ConfigMap
+                path: app_config.yaml # Tên file muốn tạo ra trong Volume

@@ -8,6 +8,10 @@ data:
     kafka:
       bootstrap_servers: "kafka-service.bigdata.svc.cluster.local:9092"
       topic: "flight_sensor_data"
+    paths:
+      local_source_data: "data/T_ONTIME_REPORTING_2025_M6.csv"
+      hdfs_raw_data: "s3a://warehouse/data/raw/flights/"
+      hdfs_checkpoint: "s3a://warehouse/checkpoints/ingestion/"
 
     minio_config:
       endpoint: "http://minio-service.bigdata.svc.cluster.local:9000"
