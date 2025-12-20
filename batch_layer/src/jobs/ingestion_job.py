@@ -74,8 +74,8 @@ def run_ingestion(spark, config):
             .option("checkpointLocation", checkpoint_path)
             .partitionBy("year", "month", "day")
             .outputMode("append")
-            .trigger(processingTime="1 minute")
-            # .trigger(processingTime="10 seconds")
+            # .trigger(processingTime="1 minute")
+            .trigger(availableNow=True)
             .start()
         )
         

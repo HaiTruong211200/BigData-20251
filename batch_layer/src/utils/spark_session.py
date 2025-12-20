@@ -1,11 +1,21 @@
 import os
 import sys
 from pyspark.sql import SparkSession
+import yaml
+
+CONFIG_PATH = "./configs/app_config.yaml"
+
+def load_config():
+    print(f"DEBUG: Loading config from {CONFIG_PATH}...", flush=True)
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 def get_spark_session(app_name="BigData_App"):
     """
     Khởi tạo Spark Session với đầy đủ cấu hình cho MinIO và Postgres.
+
     """
+    config = load_config()
     
     spark_version = "3.5.1"
     hadoop_aws_version = "3.3.4" 
@@ -18,6 +28,11 @@ def get_spark_session(app_name="BigData_App"):
         "org.postgresql:postgresql:42.7.2" 
     ]
 
+
+    minio_endpoint = config['minio_config']['endpoint']
+    minio_access_key = config['minio_config']['access_key']
+    minio_secret_key = config['minio_config']['secret_key']
+
     builder = SparkSession.builder \
         .appName(app_name) \
         .master("local[*]") \
@@ -25,9 +40,9 @@ def get_spark_session(app_name="BigData_App"):
         .config("spark.sql.shuffle.partitions", "4") 
 
     builder = builder \
-        .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000") \
-        .config("spark.hadoop.fs.s3a.access.key", "admin") \
-        .config("spark.hadoop.fs.s3a.secret.key", "password123") \
+        .config("spark.hadoop.fs.s3a.endpoint", minio_endpoint) \
+        .config("spark.hadoop.fs.s3a.access.key", minio_access_key) \
+        .config("spark.hadoop.fs.s3a.secret.key", minio_secret_key) \
         .config("spark.hadoop.fs.s3a.path.style.access", "true") \
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
         .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \

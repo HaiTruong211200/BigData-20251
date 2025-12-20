@@ -26,6 +26,13 @@ paths:
   hdfs_checkpoint: "s3a://warehouse/checkpoints/ingestion/"
   # hdfs_model: "hdfs://localhost:9000/models/flight_delay_v1/"
 
+minio_config:
+  # endpoint: "http://minio-service.bigdata.svc.cluster.local:9000"
+  endpoint: "http://localhost:9000"
+  access_key: "admin"
+  secret_key: "password123"
+  bucket: "warehouse"
+
 # 3. Cấu hình Database
 database:
   url: "postgresql://postgres:[YOUR_PASSWORD]@db.rptautrxdyguuhfabzls.supabase.co:5432/postgres"

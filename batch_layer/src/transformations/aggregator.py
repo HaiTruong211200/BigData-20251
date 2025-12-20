@@ -53,6 +53,12 @@ def calculate_daily_stats(df: DataFrame) -> DataFrame:
               F.sum("security_delay").alias("security_delay_total_minutes"),
               F.sum("late_aircraft_delay").alias("late_aircraft_delay_total_minutes"),
 
+              F.sum(F.when(F.col("carrier_delay") > 0, 1).otherwise(0)).alias("carrier_delay_flights"),
+              F.sum(F.when(F.col("weather_delay") > 0, 1).otherwise(0)).alias("weather_delay_flights"),
+              F.sum(F.when(F.col("nas_delay") > 0, 1).otherwise(0)).alias("nas_delay_flights"),
+              F.sum(F.when(F.col("security_delay") > 0, 1).otherwise(0)).alias("security_delay_flights"),
+              F.sum(F.when(F.col("late_aircraft_delay") > 0, 1).otherwise(0)).alias("late_aircraft_delay_flights"),
+
               F.sum(
                     F.coalesce(F.col("carrier_delay"), F.lit(0)) +
                     F.coalesce(F.col("weather_delay"), F.lit(0)) +
