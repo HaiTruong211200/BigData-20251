@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-consumer
+  namespace: bigdata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flight-consumer
+  template:
+    metadata:
+      labels:
+        app: flight-consumer
+    spec:
+      containers:
+      - name: consumer
+        image: khoa2k4/flight-stream:1.0
+        imagePullPolicy: Always
+        command: ["python", "-u"]
+        args: ["src/consumer/consumer.py"]
+        env:
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: kafka-service.bigdata.svc.cluster.local:9092
+        - name: PYTHONPATH
+          value: /app

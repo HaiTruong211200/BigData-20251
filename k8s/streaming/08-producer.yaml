@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-producer
+  namespace: bigdata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flight-producer
+  template:
+    metadata:
+      labels:
+        app: flight-producer
+    spec:
+      containers:
+      - name: producer
+        image: khoa2k4/flight-stream:1.0
+        imagePullPolicy: Always
+        command: ["python", "-u"]
+        args: ["src/producer/produce_streaming_event.py"]
+        env:
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: kafka-service.bigdata.svc.cluster.local:9092

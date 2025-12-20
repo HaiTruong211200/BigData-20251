@@ -13,7 +13,7 @@ from pyspark.ml.functions import vector_to_array
 from pyspark.sql.types import *
 from pyspark.ml import PipelineModel
 
-from streaming_layer.src.util.flight_schema import spark_schema
+from src.util.flight_schema import spark_schema
 
 
 
@@ -60,8 +60,8 @@ spark.sparkContext.setLogLevel("WARN")
 # 1. Đọc Raw Data từ Kafka
 kafka_raw_df = spark.readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "localhost:9092") \
-    .option("subscribe", "flight_topic") \
+    .option("kafka.bootstrap.servers", "kafka-service.bigdata.svc.cluster.local:9092") \
+    .option("subscribe", "flight_sensor_data") \
     .option("kafka.isolation.level", "read_committed") \
     .option("startingOffsets", "latest") \
     .load()
@@ -130,7 +130,11 @@ display_df = final_df.select(
 
 # ====================================================
 # LOAD MODEL ĐÃ TRAIN
-model_path = "../../Model/DT"
+base_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.abspath(
+    os.path.join(base_dir, "../../Model/DT")
+)
+# model_path = "../../Model/DT"
 try:
     flight_model = PipelineModel.load(model_path)
     print(">>> Đã load Model ML thành công!")
@@ -198,7 +202,7 @@ dest_kpi_df = enriched_df \
 # --- STREAM C: LIVE BOARD (Chi tiết chuyến bay đang hoạt động) ---
 # Lọc lấy những chuyến ĐANG BAY hoặc ĐANG LĂN
 live_board_df = enriched_df \
-    .filter(col("realtime_status").isin("AIRBORNE", "TAXI_OUT", "TAXI_IN")) \
+    .filter(col("realtime_status").isin("AIRBORNE", "TAXI_OUT", "TAXI_IN", "COMPLETED")) \
     .select(
         col("flight_code"),
         col("FL_DATE").alias("fl_date"),

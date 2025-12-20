@@ -42,6 +42,9 @@ spec:
               value: "PLAINTEXT:PLAINTEXT"
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+
           resources:
             limits:
               memory: "1Gi"
