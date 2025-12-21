@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: etl-job-manual
+  namespace: bigdata # <--- Đổi thành 'bigdata' cho trùng với môi trường bạn đang làm
+spec:
+  # QUAN TRỌNG KHI DEBUG:
+  # 1. backoffLimit: 0 -> Sai là dừng luôn, không thử lại (để tránh spam Pod lỗi)
+  backoffLimit: 0
+
+  # 2. ttlSecondsAfterFinished: Tạm thời comment dòng này lại.
+  # Nếu để 100s, Job chạy xong (hoặc lỗi) nó sẽ xóa Pod -> Bạn không kịp xem Log.
+  # ttlSecondsAfterFinished: 100
+
+  template:
+    metadata:
+      labels:
+        app: etl-job-manual
+    spec:
+      containers:
+        - name: etl-container
+          image: flight-prediction:v2
+          # Nếu dùng Minikube/Docker Desktop load image thủ công -> Nên để Never hoặc IfNotPresent
+          imagePullPolicy: IfNotPresent
+
+          # Lệnh chạy
+          command: ["python", "-m", "src.jobs.etl_job"]
+
+          # Cấu hình tài nguyên
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "1"
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # Biến môi trường (Lấy từ Secret)
+          env:
+            - name: NEON_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: my-db-secret
+                  key: db-url
+
+          # Mount ConfigMap
+          volumeMounts:
+            - name: config-vol
+              mountPath: /app/configs/app_config.yaml
+              subPath: app_config.yaml
+              readOnly: true
+
+      # Volume từ ConfigMap
+      volumes:
+        - name: config-vol
+          configMap:
+            name: app-config
+            items:
+              - key: app_config.yaml
+                path: app_config.yaml
+
+      # Nếu lỗi thì dừng, giữ nguyên Pod trạng thái Error để xem log
+      restartPolicy: Never

@@ -1,0 +1,68 @@
+# 1. Cấu hình Executor mạnh nhất cho K8s
+executor: KubernetesExecutor
+
+# 2. Dùng Image chuẩn của Airflow (Để cài đặt không bị lỗi)
+images:
+  airflow:
+    repository: apache/airflow
+    tag: 3.1.5-python3.11
+    pullPolicy: IfNotPresent
+
+# 3. Biến môi trường
+env:
+  - name: AIRFLOW__CORE__DEFAULT_TIMEZONE
+    value: "Asia/Ho_Chi_Minh"
+  - name: TZ
+    value: "Asia/Ho_Chi_Minh"
+  # Tắt ví dụ mẫu để giao diện đỡ rối
+  - name: AIRFLOW__CORE__LOAD_EXAMPLES
+    value: "False"
+
+# 4. Webserver: Dùng NodePort để truy cập từ máy bạn dễ dàng
+webserver:
+  enabled: true
+  service:
+    type: NodePort
+    ports:
+      - name: airflow-ui
+        port: 8080 # <--- Đổi cổng Service ra ngoài thành 8888
+        targetPort: 8080
+
+# 5. Phân quyền (QUAN TRỌNG):
+# Tạo ServiceAccount tên là "airflow-worker" để sau này Pod Spark có quyền chạy
+serviceAccount:
+  create: true
+  name: "airflow-worker"
+
+# 6. Tắt bớt service không cần thiết cho nhẹ Minikube
+redis:
+  enabled: false # KubernetesExecutor không cần Redis
+statsd:
+  enabled: false
+triggerer:
+  enabled: true # Cần bật cái này
+
+# 7. Database Postgres (Helm tự quản lý)
+postgresql:
+  enabled: true
+  image:
+    repository: bitnami/postgresql
+    tag: "latest"
+    auth:
+      enablePostgresUser: true
+
+dags:
+  gitSync:
+    enabled: true
+    repo: https://github.com/HaiTruong211200/my-airflow-dags.git
+    branch: main
+    # QUAN TRỌNG: Nếu file py nằm ngay ngoài cùng repo thì để ""
+    # Nếu file py nằm trong thư mục tên là "dags" thì mới để "dags"
+    subPath: "dags"
+    wait: 60
+
+# 9. Lưu Logs (Để xem được log trên UI sau khi Task chạy xong)
+logs:
+  persistence:
+    enabled: true
+    size: 5Gi

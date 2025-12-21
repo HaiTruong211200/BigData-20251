@@ -6,8 +6,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8000 # Cổng của Service (bên ngoài)
+      targetPort: 8000 # Cổng của Pod (bên trong)
   selector:
     app: kafka-ui
 ---
@@ -30,8 +30,12 @@ spec:
         - name: kafka-ui
           image: provectuslabs/kafka-ui:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           env:
+            # --- PHẦN QUAN TRỌNG VỪA THÊM VÀO ---
+            - name: SERVER_PORT # Ép ứng dụng chạy ở cổng 8000
+              value: "8000"
+            # ------------------------------------
             - name: KAFKA_CLUSTERS_0_NAME
               value: "Flight_Cluster"
             - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS

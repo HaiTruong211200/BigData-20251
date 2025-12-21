@@ -20,4 +20,4 @@ data:
       bucket: "warehouse"
 
     database:
-      url: "postgresql://neondb_owner:....@ep-cool-cloud.us-east-2.aws.neon.tech/neondb?sslmode=require"
+      url: "postgresql://neondb_owner:npg_LK04qASEgCyc@ep-still-shadow-ahdpmoze-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
