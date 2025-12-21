@@ -14,7 +14,7 @@ sys.stdout.reconfigure(line_buffering=True)
 CONFIG_PATH = "./configs/app_config.yaml"
 # CSV_FILE = "/app/data/stream_source/T_ONTIME_REPORTING_2025_M6.csv" 
 # Hoặc lấy từ config nếu bạn đã cấu hình:
-CSV_FILE = "./data/T_ONTIME_REPORTING_2025_M6.csv"
+# CSV_FILE = "./data/T_ONTIME_REPORTING_2025_M6.csv"
 
 def load_config():
     print(f"DEBUG: Loading config from {CONFIG_PATH}...", flush=True)
@@ -25,9 +25,12 @@ def run():
     config = load_config()
     server = config['kafka']['bootstrap_servers']
     topic = config['kafka']['topic']
+    CSV_FILE = config["database"]["csv"]
+    print(f"DEBUG: Loaded config: Kafka Server: {server}, Topic: {topic}, CSV_FILE: {CSV_FILE}", flush=True)
     
     # Lấy đường dẫn CSV từ config hoặc hardcode
-    csv_path = config.get('paths', {}).get('local_source_data', CSV_FILE)
+    # csv_path = config.get('paths', {}).get('local_source_data', CSV_FILE)
+    csv_path = CSV_FILE
 
     print(f"DEBUG: Target Kafka Server: {server}", flush=True)
 
@@ -67,7 +70,7 @@ def run():
                 if _ % 100 == 0:
                      print(f"-> Sent sample: {record.get('OP_UNIQUE_CARRIER')} | {record.get('FL_DATE')}", flush=True)
                 
-                time.sleep(0.01) # Tăng tốc lên chút (0.01s), 0.5s thì chậm lắm
+                time.sleep(0.001) # Tăng tốc lên chút (0.01s), 0.5s thì chậm lắm
                 
         producer.flush()
         print("FINISHED: All data sent.", flush=True)
