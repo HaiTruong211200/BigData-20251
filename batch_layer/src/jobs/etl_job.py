@@ -19,76 +19,87 @@ REPORT_TABLE_FLIGHT_DAILY_BY_AIRLINE = "airline_daily_stats"
 REPORT_TABLE_FLIGHT_DAILY_BY_DESTINATION = "destination_airport_daily_stats"
 REPORT_TABLE_FLIGHT_DAILY_BY_ORIGIN = "origin_airport_daily_stats"
 
+from pyspark.sql import SparkSession
+import time
+
 def run_etl_job(spark: SparkSession, config: dict):
     """
-    Thực hiện quy trình ETL Batch: Đọc file Parquet từ MinIO, tính KPI, ghi vào Supabase.
+    Thực hiện quy trình ETL Batch: Đọc file Parquet từ MinIO, tính KPI, ghi vào Neon (Supabase).
     """
     print("\n" + "="*60)
-    print(">>> BATCH ETL JOB: STARTING (MINIO -> SUPABASE) <<<")
+    print(">>> BATCH ETL JOB: STARTING (MINIO -> NEON) <<<")
     print("="*60)
     
-    # 1. EXTRACT: Đọc toàn bộ dữ liệu lịch sử từ MinIO
+    start_time = time.time()
+
+    # 1. EXTRACT: Đọc dữ liệu
     try:
         print(f"1. EXTRACT: Đang đọc dữ liệu từ MinIO: {MINIO_RAW_PATH}")
-        # Đọc toàn bộ file Parquet đã được Ingestion Job tích lũy
         df_raw = spark.read.parquet(MINIO_RAW_PATH)
-        print(f"   -> Đã load thành công {df_raw.count()} dòng dữ liệu.")
+        # LƯU Ý: Đã bỏ df_raw.count() để tiết kiệm thời gian
     except Exception as e:
-        print(f"❌ ERROR: Không thể đọc dữ liệu từ MinIO. (Kiểm tra S3A Key/Endpoint)")
-        print(e)
+        print(f"❌ ERROR: Không thể đọc dữ liệu từ MinIO. Lỗi: {str(e)}")
         return
 
-    # 2. TRANSFORM: Cleaning và Aggregation
-    print("2. TRANSFORM: Đang làm sạch và tính toán KPIs...")
+    # 2. TRANSFORM: Cleaning
+    print("2. TRANSFORM: Cleaning Data...")
     
-    # a. CLEANING (Chạy hàm từ cleaner.py)
-    # Áp dụng chuyển đổi kiểu dữ liệu (Date, Double)
+    # Chuỗi xử lý
     df_cast = cast_column_types(df_raw) 
-    
-    # Áp dụng loại bỏ các dòng có giá trị Null
     df_clean = handle_missing_values(df_cast)
-    print(f"   -> Đã làm sạch và loại bỏ {df_raw.count() - df_clean.count()} dòng bị thiếu.")
+
+    # --- TỐI ƯU QUAN TRỌNG: CACHE ---
+    # Vì df_clean được dùng lại 4 lần bên dưới, ta cache nó vào RAM
+    df_clean.cache()
     
-    # b. AGGREGATION (Chạy hàm từ aggregator.py)
-    # Tính toán thống kê theo ngày và hãng bay
-    df_kpi_flight = calculate_daily_stats(df_clean)
+    # Chỉ gọi count() 1 lần duy nhất ở đây để kích hoạt cache và log info
+    row_count = df_clean.count()
+    print(f" -> Dữ liệu sạch đã sẵn sàng trong Cache: {row_count} dòng.")
+
+    if row_count == 0:
+        print("⚠️ CẢNH BÁO: Không có dữ liệu sau khi làm sạch. Dừng Job.")
+        df_clean.unpersist()
+        return
+
+    # 3. AGGREGATION & LOAD (Dùng vòng lặp cho gọn)
+    # Định nghĩa danh sách các task: (Hàm tính toán, Tên bảng đích)
+    tasks = [
+        (calculate_daily_stats, REPORT_TABLE_FLIGHT_DAILY, "KPI Tổng hợp"),
+        (calculate_daily_stats_by_airline, REPORT_TABLE_FLIGHT_DAILY_BY_AIRLINE, "KPI theo Hãng bay"),
+        (calculate_daily_stats_by_destination_airport, REPORT_TABLE_FLIGHT_DAILY_BY_DESTINATION, "KPI theo Sân bay đến"),
+        (calculate_daily_stats_by_origin_airport, REPORT_TABLE_FLIGHT_DAILY_BY_ORIGIN, "KPI theo Sân bay đi")
+    ]
+
+    print(f"3. AGGREGATION & LOAD: Bắt đầu xử lý {len(tasks)} báo cáo...")
+
+    for func_calc, table_name, description in tasks:
+        try:
+            step_start = time.time()
+            print(f"   --- Đang xử lý: {description} -> Bảng: {table_name} ---")
+            
+            # Tính toán
+            df_kpi = func_calc(df_clean)
+            
+            # Ghi vào DB
+            write_data_to_neon(
+                spark_df=df_kpi, 
+                table_name=table_name, 
+                mode="replace" # Hoặc "append" tùy logic của bạn
+            )
+            print(f"   ✅ Hoàn thành {description} trong {time.time() - step_start:.2f}s")
+            
+        except Exception as e:
+            print(f"   ❌ Lỗi khi xử lý {description}: {str(e)}")
+            # Không return, tiếp tục chạy các task khác
+
+    # 4. CLEANUP
+    # Giải phóng RAM sau khi xong việc
+    df_clean.unpersist()
     
-    df_kpi_flight.show(5)
-    print(f"   -> Kết quả KPI: {df_kpi_flight.count()} dòng báo cáo được tạo.")
-
-    # 3. LOAD: Ghi kết quả tổng hợp vào Database (Supabase)
-    print(f"3. LOAD: Đang ghi kết quả KPI vào Supabase (Bảng: {REPORT_TABLE_FLIGHT_DAILY})...")
-    
-    write_data_to_neon(
-        spark_df=df_kpi_flight, 
-        table_name=REPORT_TABLE_FLIGHT_DAILY, 
-        mode="replace"
-    )
-
-    df_kpi_flight_by_airline = calculate_daily_stats_by_airline(df_clean)
-    print(f"   -> Ghi báo cáo theo ngày & hãng bay vào Supabase (Bảng: {REPORT_TABLE_FLIGHT_DAILY_BY_AIRLINE})...")
-    write_data_to_neon(
-        spark_df=df_kpi_flight_by_airline, 
-        table_name=REPORT_TABLE_FLIGHT_DAILY_BY_AIRLINE, 
-        mode="replace"
-    )
-
-    df_kpi_flight_by_destination = calculate_daily_stats_by_destination_airport(df_clean)
-    print(f"   -> Ghi báo cáo theo ngày & sân bay đến vào Supabase (Bảng: {REPORT_TABLE_FLIGHT_DAILY_BY_DESTINATION})...")
-    write_data_to_neon(
-        spark_df=df_kpi_flight_by_destination, 
-        table_name=REPORT_TABLE_FLIGHT_DAILY_BY_DESTINATION, 
-        mode="replace"
-    )
-
-    df_kpi_flight_by_origin = calculate_daily_stats_by_origin_airport(df_clean)
-    print(f"   -> Ghi báo cáo theo ngày & sân bay đi vào Supabase (Bảng: {REPORT_TABLE_FLIGHT_DAILY_BY_ORIGIN})...")
-    write_data_to_neon(
-        spark_df=df_kpi_flight_by_origin, 
-        table_name=REPORT_TABLE_FLIGHT_DAILY_BY_ORIGIN, 
-        mode="replace"
-    )
-
+    duration = time.time() - start_time
+    print("="*60)
+    print(f">>> JOB FINISHED SUCCESSFULY IN {duration:.2f} SECONDS <<<")
+    print("="*60)
      # Kết thúc ETL Job
 
 

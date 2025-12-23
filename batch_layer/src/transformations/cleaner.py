@@ -16,6 +16,7 @@ def handle_missing_values(df: DataFrame) -> DataFrame:
     """
     Xử lý dữ liệu bị thiếu (Null/NaN).
     - Loai bỏ các hàng có giá trị Null/NaN.
+    - Khử trùng lặp dựa trên khóa chính.
     """
     essential_subset = [
         "FL_DATE", 
@@ -28,5 +29,18 @@ def handle_missing_values(df: DataFrame) -> DataFrame:
     
     # Loại bỏ hàng nếu bất kỳ cột nào trong danh sách essential_subset bị NULL
     df_clean = df.dropna(subset=essential_subset)
+
+    primary_keys = [
+    "FL_DATE", 
+    "OP_UNIQUE_CARRIER", 
+    "OP_CARRIER_FL_NUM", 
+    "ORIGIN", 
+    "DEST", 
+    "CRS_DEP_TIME"
+]
+
+    # Khử trùng lặp
+    # Spark sẽ giữ lại 1 bản ghi duy nhất cho mỗi tổ hợp khóa này
+    df_deduplicated = df_clean.dropDuplicates(subset=primary_keys)
     
-    return df_clean
+    return df_deduplicated

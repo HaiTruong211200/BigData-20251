@@ -224,15 +224,15 @@ live_board_df = enriched_df \
 # ====================================================
 
 # Xuất bảng Live Board (Chuyến bay đang hoạt động)
-query_live = live_board_df.writeStream \
-    .outputMode("append") \
-    .format("console") \
-    .option("truncate", "false") \
-    .queryName("LiveBoardQuery") \
-    .start()
+# query_live = live_board_df.writeStream \
+#     .outputMode("append") \
+#     .format("console") \
+#     .option("truncate", "false") \
+#     .queryName("LiveBoardQuery") \
+#     .start()
 
-# Xuất KPI Origin (Sẽ thấy avg_taxi_out)
-# Dùng "update" mode cho Aggregation
+# # Xuất KPI Origin (Sẽ thấy avg_taxi_out)
+# # Dùng "update" mode cho Aggregation
 # query_origin = origin_kpi_df.writeStream \
 #     .outputMode("update") \
 #     .format("console") \

@@ -21,4 +21,4 @@ data:
 
     database:
       url: "postgresql://neondb_owner:npg_LK04qASEgCyc@ep-still-shadow-ahdpmoze-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-      csv: "./data/T_ONTIME_REPORTING_2025_M1.csv"
+      csv: "./data/T_ONTIME_REPORTING_2025_M6.csv"
