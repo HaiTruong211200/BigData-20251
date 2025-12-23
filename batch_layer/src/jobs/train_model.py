@@ -104,7 +104,7 @@ def train_and_save(df, output_dir: str):
     train_df, test_df = df.randomSplit([0.8, 0.2], seed=2025)
 
     # Avoid tiny partition counts; helps memory pressure per task in local mode
-    train_partitions = int(os.environ.get("TRAIN_REPARTITION", "8"))
+    train_partitions = int(os.environ.get("TRAIN_REPARTITION", "4"))
     train_df = train_df.repartition(train_partitions)
     test_df = test_df.repartition(max(4, train_partitions // 4))
 
@@ -127,12 +127,16 @@ def train_and_save(df, output_dir: str):
 def main():
     # Local training can be memory heavy; these can be overridden via env vars.
     extra_confs = {
-        "spark.sql.shuffle.partitions": os.environ.get("SPARK_SQL_SHUFFLE_PARTITIONS", "24"),
+        "spark.serializer": os.environ.get(
+            "SPARK_SERIALIZER", "org.apache.spark.serializer.KryoSerializer"
+        ),
+        "spark.memory.fraction": os.environ.get("SPARK_MEMORY_FRACTION", "0.8"),
+        "spark.sql.shuffle.partitions": os.environ.get("SPARK_SQL_SHUFFLE_PARTITIONS", "8"),
         "spark.sql.adaptive.enabled": os.environ.get("SPARK_SQL_ADAPTIVE_ENABLED", "true"),
         "spark.sql.adaptive.coalescePartitions.enabled": os.environ.get("SPARK_SQL_COALESCE_ENABLED", "true"),
-        "spark.driver.memory": os.environ.get("SPARK_DRIVER_MEMORY", "4g"),
-        "spark.executor.memory": os.environ.get("SPARK_EXECUTOR_MEMORY", "4g"),
-        "spark.driver.maxResultSize": os.environ.get("SPARK_DRIVER_MAX_RESULT_SIZE", "2g"),
+        "spark.driver.memory": os.environ.get("SPARK_DRIVER_MEMORY", "2g"),
+        "spark.executor.memory": os.environ.get("SPARK_EXECUTOR_MEMORY", "2g"),
+        "spark.driver.maxResultSize": os.environ.get("SPARK_DRIVER_MAX_RESULT_SIZE", "1g"),
     }
     spark = get_spark_session(app_name="Train_DecisionTree_Model", extra_confs=extra_confs)
     print("\n=== Loading data from MinIO (parquet) ===")

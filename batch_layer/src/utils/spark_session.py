@@ -1,5 +1,4 @@
 import os
-import sys
 from pyspark.sql import SparkSession
 import yaml
 
@@ -33,11 +32,19 @@ def get_spark_session(app_name="BigData_App", extra_confs: dict | None = None):
     minio_access_key = config['minio_config']['access_key']
     minio_secret_key = config['minio_config']['secret_key']
 
+    # Memory/OOM stability defaults (can be overridden via env vars or extra_confs)
+    spark_serializer = os.environ.get(
+        "SPARK_SERIALIZER", "org.apache.spark.serializer.KryoSerializer"
+    )
+    spark_memory_fraction = os.environ.get("SPARK_MEMORY_FRACTION", "0.8")
+
     # Allow runtime overrides via env vars (handy for local training runs)
     spark_driver_memory = os.environ.get("SPARK_DRIVER_MEMORY")
     spark_executor_memory = os.environ.get("SPARK_EXECUTOR_MEMORY")
     spark_local_dir = os.environ.get("SPARK_LOCAL_DIR")
     spark_shuffle_partitions = os.environ.get("SPARK_SQL_SHUFFLE_PARTITIONS", "4")
+    spark_aqe_enabled = os.environ.get("SPARK_SQL_ADAPTIVE_ENABLED", "true")
+    spark_coalesce_enabled = os.environ.get("SPARK_SQL_COALESCE_ENABLED", "true")
 
     builder = (
         SparkSession.builder
@@ -45,6 +52,10 @@ def get_spark_session(app_name="BigData_App", extra_confs: dict | None = None):
         .master("local[*]")
         .config("spark.jars.packages", ",".join(packages))
         .config("spark.sql.shuffle.partitions", spark_shuffle_partitions)
+        .config("spark.sql.adaptive.enabled", spark_aqe_enabled)
+        .config("spark.sql.adaptive.coalescePartitions.enabled", spark_coalesce_enabled)
+        .config("spark.serializer", spark_serializer)
+        .config("spark.memory.fraction", spark_memory_fraction)
     )
 
     if spark_driver_memory:
