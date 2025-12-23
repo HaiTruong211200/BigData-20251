@@ -16,6 +16,8 @@ from src.utils.flight_schema import spark_schema
 def run_ingestion(spark, config):
     print("\n" + "="*50)
     print(">>> [DEBUG] STEP 1: CONFIGURING KAFKA SOURCE...")
+
+    checkpoint_path = config["paths"]["hdfs_checkpoint"]
     
     try:
         # 2. Read Stream from Kafka

@@ -34,7 +34,8 @@ def write_data_to_neon(spark_df: DataFrame, table_name: str, mode: str = "replac
     # 2. Kết nối và Ghi vào Neon
     try:
         load_dotenv()  # Đảm bảo biến môi trường được tải
-        db_url = os.getenv("NEON_DB_URL")
+        db_url = os.getenv("db-url")
+        print(f"DEBUG: Kết nối đến DB với URL: {db_url}")
         engine = create_engine(db_url)
 
         with engine.connect() as connection:

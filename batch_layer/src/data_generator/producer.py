@@ -70,7 +70,7 @@ def run():
                 if _ % 100 == 0:
                      print(f"-> Sent sample: {record.get('OP_UNIQUE_CARRIER')} | {record.get('FL_DATE')}", flush=True)
                 
-                time.sleep(0.001) # Tăng tốc lên chút (0.01s), 0.5s thì chậm lắm
+                time.sleep(0.01) # Tăng tốc lên chút (0.01s), 0.5s thì chậm lắm
                 
         producer.flush()
         print("FINISHED: All data sent.", flush=True)
