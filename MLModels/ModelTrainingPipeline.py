@@ -31,9 +31,19 @@ def parse_args():
 
 
 def build_spark(app_name: str) -> SparkSession:
-    return (SparkSession.builder.appName(app_name)
-            .config("spark.executor.memory", "4g")
-            .getOrCreate())
+    spark_serializer = os.environ.get(
+        "SPARK_SERIALIZER", "org.apache.spark.serializer.KryoSerializer"
+    )
+    spark_memory_fraction = os.environ.get("SPARK_MEMORY_FRACTION", "0.8")
+    spark_executor_memory = os.environ.get("SPARK_EXECUTOR_MEMORY", "4g")
+
+    return (
+        SparkSession.builder.appName(app_name)
+        .config("spark.serializer", spark_serializer)
+        .config("spark.memory.fraction", spark_memory_fraction)
+        .config("spark.executor.memory", spark_executor_memory)
+        .getOrCreate()
+    )
 
 
 def load_dataset(spark: SparkSession, path: str):
