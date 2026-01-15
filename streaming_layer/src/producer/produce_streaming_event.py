@@ -32,7 +32,7 @@ if __name__ == "__main__":
     producer = create_producer()
 
     # Data path
-    data_path = "src/producer/data/dataset.csv"  # Path to data
+    data_path = "src/producer/data/T_ONTIME_REPORTING_2025_M1.csv"  # Path to data
     topic = "flight_sensor_data"
 
     # Read data

@@ -6,9 +6,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, when,
     concat, lit, lpad,
-    current_date
+    current_date, isnan
 )
-from pyspark.sql.functions import to_timestamp, date_format, expr, avg, count, sum, window, current_timestamp, from_json, coalesce
+from pyspark.sql.functions import to_timestamp, date_format, expr, avg, count, sum, window, current_timestamp, from_json, coalesce, expr
 from pyspark.ml.functions import vector_to_array
 from pyspark.sql.types import *
 from pyspark.ml import PipelineModel
@@ -151,12 +151,18 @@ ml_input_df = final_df \
 # 2. Dự báo (Prediction)
 predicted_df = flight_model.transform(ml_input_df)
 
+# ===== ADD CLEAN COLUMN (KHÔNG SỬA NAS_DELAY GỐC) =====
+predicted_df = predicted_df.withColumn(
+    "NAS_DELAY_CLEAN",
+    when(isnan(col("NAS_DELAY")) | col("NAS_DELAY").isNull(), 0.0)
+    .otherwise(col("NAS_DELAY"))
+)
 
 
 enriched_df = predicted_df \
     .withColumn("is_holding", 
         # Logic: Nếu NAS_DELAY > 0 và trạng thái là đang đến/đã đến -> coi như bị Holding
-        when((col("NAS_DELAY") > 0) & (col("realtime_status").isin("TAXI_IN", "COMPLETED", "AIRBORNE")), 1)
+        when((col("NAS_DELAY_CLEAN") > 0) & (col("realtime_status").isin("TAXI_IN", "COMPLETED", "AIRBORNE")), 1)
         .otherwise(0)
     ) \
     .withColumn("prob_array", vector_to_array(col("probability"))) \
@@ -179,7 +185,8 @@ origin_kpi_df = enriched_df \
     .withWatermark("ts_dep", "1 hour") \
     .filter(col("realtime_status").isin("AIRBORNE", "COMPLETED", "TAXI_IN")) \
     .groupBy(
-        window(col("ts_dep"), "1 hour", "5 minutes"), # Cửa sổ 1 tiếng, trượt 5 phút
+        window(col("ts_dep"), "1 hour", "10 minutes"), # Cửa sổ 1 tiếng, trượt 5 phút
+        # window(col("ts_dep"), "15 minutes"),
         col("ORIGIN")
     ).agg(
         avg("TAXI_OUT").alias("avg_taxi_out"),
@@ -188,16 +195,57 @@ origin_kpi_df = enriched_df \
 
 # --- STREAM B: DESTINATION KPI (Sức khỏe sân bay đến) ---
 # Tính toán lượng máy bay phải bay vòng (Holding)
-dest_kpi_df = enriched_df \
-    .withWatermark("ts_arr", "1 hour") \
-    .filter(col("realtime_status").isin("AIRBORNE", "TAXI_IN", "COMPLETED")) \
+# dest_kpi_df = enriched_df \
+#     .withWatermark("ts_arr", "1 hour") \
+#     .filter(col("realtime_status").isin("AIRBORNE", "TAXI_IN", "COMPLETED")) \
+#     .groupBy(
+#         window(col("ts_arr"), "3 hour", "30 minutes"),
+#         # window(col("ts_arr"), "30 minutes"),
+#         col("DEST")
+#     ).agg(
+#         coalesce(sum("is_holding"), lit(0)).alias("holding_count"),
+#         coalesce(avg("NAS_DELAY"), lit(0)).alias("avg_nas_delay")
+#     )
+
+
+# dest_kpi_df = (
+#     enriched_df
+#     .withWatermark("ts_arr", "1 hour")
+#     .filter(col("realtime_status").isin("AIRBORNE", "TAXI_IN", "COMPLETED"))
+#     .groupBy(
+#         window(col("ts_arr"), "3 hour", "30 minutes"),
+#         col("DEST")
+#     )
+#     .agg(
+#         sum("is_holding").alias("holding_count"),
+#         avg(
+#             when(col("is_holding") == 1, col("NAS_DELAY"))
+#         ).alias("avg_nas_delay")
+#     )
+# )
+
+dest_kpi_df = (
+    enriched_df
+    .withWatermark("ts_arr", "1 hour")
+    .filter(col("realtime_status").isin("AIRBORNE", "TAXI_IN", "COMPLETED"))
     .groupBy(
         window(col("ts_arr"), "3 hour", "30 minutes"),
         col("DEST")
-    ).agg(
-        coalesce(sum("is_holding"), lit(0)).alias("holding_count"),
-        coalesce(avg("NAS_DELAY"), lit(0)).alias("avg_nas_delay")
     )
+    .agg(
+        sum("is_holding").alias("holding_count"),
+        # avg(
+        #     when(col("is_holding") == 1, col("NAS_DELAY"))
+        # ).alias("avg_nas_delay")
+        avg(
+            when(
+                (col("is_holding") == 1) & (col("NAS_DELAY_CLEAN") > 0),
+                col("NAS_DELAY")
+            )
+        ).alias("avg_nas_delay")
+    )
+)
+
 
 # --- STREAM C: LIVE BOARD (Chi tiết chuyến bay đang hoạt động) ---
 # Lọc lấy những chuyến ĐANG BAY hoặc ĐANG LĂN
